@@ -61,7 +61,7 @@ AppWindow::AppWindow()
 	// by default, so it'll take up the rest of the window.
 	
 	//m_viewer.set_size_request(300, 600);
-	m_viewer.set_size_request(600, 900);
+	m_viewer.set_size_request(900, 600);
 	m_vbox.pack_start(m_viewer);
 	
 	show_all();

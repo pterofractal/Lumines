@@ -131,11 +131,21 @@ void dropShadowPiece();
   int get(int r, int c) const;
   int& get(int r, int c);
 
+	double getClearBarPos()
+	{
+		return clearBarPos;
+	}
+	
+	void moveClearBar();
+	void pullDown(int x, int y);
+	
 private:
-  bool doesPieceFit(const Piece& p, int x, int y) const;
+	bool doesPieceFit(const Piece& p, int x, int y) const;
 
-  void removeRow(int y);
-  int collapse();
+	void removeRow(int y);
+	int collapse();
+
+	void markBlocksForClearing();
 
   void removePiece(const Piece& p, int x, int y);
   void placePiece(const Piece& p, int x, int y);
@@ -145,20 +155,21 @@ private:
 	void dropPiece(int side);
 
 private:
-  int board_width_;
-  int board_height_;
+	int board_width_;
+	int board_height_;
 
-  bool stopped_;
+	bool stopped_;
 
-  Piece piece_;
+	Piece piece_;
 	Piece shadowPiece_;
-  int px_, sx_;
-  int py_, sy_;
+	int px_, sx_;
+	int py_, sy_;
 
-  int* board_;
+	int* board_;
 
 	// Extra stuff
 	int score_, linesCleared_;
+	double clearBarPos;
 	
 };
 

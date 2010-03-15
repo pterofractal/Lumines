@@ -15,7 +15,7 @@
 #include <algorithm>
 
 #include "game.hpp"
-
+int counter = 0;
 static const Piece PIECES[] = {
   Piece(
         "...."
@@ -241,15 +241,12 @@ void Game::removeRow(int y)
   }
 }
 
-int Game::collapse() 
+void Game::markBlocksForClearing() 
 {
   // This method is implemented in a brain-dead way.  Repeatedly
   // walk up from the bottom of the well, removing the first full 
   // row, stopping when there are no more full rows.  It could be
   // made much faster.  Sue me.
-
-  int removed = 0;
-
 	for (int r = 0; r<board_height_ + 3; ++r)
 	{
 		for (int c = 0; c<board_width_ - 1; ++c)
@@ -270,35 +267,37 @@ int Game::collapse()
 			}
 		}
 	}
-	/*
-  while(true) {
-    bool got_one = false;
-    for(int r = 0; r < board_height_ + 4; ++r) {
-      int holes = 0;
-
-      for(int c = 0; c < board_width_; ++c) {
-        if(get(r, c) == -1) {
-          holes = 1;
-          break;
-        }
-      }
-
-      if(holes == 0) {
-        got_one = 1;
-        ++removed;
-        removeRow(r);
-        break;
-      }
-    }
-
-    if(!got_one) {
-      break;
-    }
-  }*/
-
-  return removed;
 }
 
+int Game::collapse()
+{
+	//removePiece(piece_, px_, py_);
+	for (int r = board_height_ + 2; r>= 0; --r)
+	{
+	//	for (int c = 0; c<clearBarPos - 1; ++c)
+	//	{	
+				int c = (int)clearBarPos;
+				
+				if (get(r, c) == 3 || get(r, c) == 4 )
+				{
+					// Collapse
+					get(r, c) = -1;
+					pullDown(r, c);
+				}
+		//}
+	}
+	//placePiece(piece_, px_, py_);
+	// Pull pieces down
+	return 0;
+}
+
+void Game::pullDown(int y, int x)
+{
+	for(int r = y + 1; r < board_height_ + 4; ++r) 
+	{
+		get(r-1, x) = get(r, x);
+	}
+}
 void Game::placePiece(const Piece& p, int x, int y)
 {
   for(int r = 0; r < 4; ++r) {
@@ -333,15 +332,26 @@ int Game::tick()
 	{
 		return -1;
 	}
-
+	
 	removePiece(piece_, px_, py_);
+	collapse();
+	moveClearBar();
+	if (counter < 10)
+	{
+		counter++;
+		placePiece(piece_, px_, py_);
+		return 0;
+	}		
+	
+	counter = 0;	
 	int ny = py_ - 1;
-
+		
 	if(!doesPieceFit(piece_, px_, ny)) 
 	{
 		// Must finish off with this piece
+		markBlocksForClearing();
 		placePiece(piece_, px_, py_);
-		if(py_ >= board_height_) 
+		if(py_ >= board_height_ + 1) 
 		{
 	    	// you lose.
 	    	stopped_ = true;
@@ -351,33 +361,31 @@ int Game::tick()
 		{
 			// break piece and keep moving down if need be
 
-					// The right side can drop more
- 					if(get(ny-2, px_+1) != -1 && get(ny-2, px_+2) == -1)  
-					{						
-					/*	Piece temp = piece_;
-						temp.removeHalf(1);
-						removePiece(piece_, px_, py_);
-					  	placePiece(temp, px_, py_);
-						while(true) 
-						{
-							if(get(ny-2, px_+2) != -1) 
-							{
-					      		break;
-					    	}
-							--ny;
-					  	}
-						piece_.removeHalf(0);
-						++ny;
-					  	placePiece(piece_, px_, ny);*/						
-						dropPiece(0);
-					}
-					else if(get(ny-2, px_+1) == -1 && get(ny-2, px_+2) != -1)  
+			// The right side can drop more
+				if(get(ny-2, px_+1) != -1 && get(ny-2, px_+2) == -1)  
+			{						
+			/*	Piece temp = piece_;
+				temp.removeHalf(1);
+				removePiece(piece_, px_, py_);
+			  	placePiece(temp, px_, py_);
+				while(true) 
+				{
+					if(get(ny-2, px_+2) != -1) 
 					{
-						dropPiece(1);
-					}
-
-			
-	    	int rm = collapse();
+			      		break;
+			    	}
+					--ny;
+			  	}
+				piece_.removeHalf(0);
+				++ny;
+			  	placePiece(piece_, px_, ny);*/						
+				dropPiece(0);
+			}
+			else if(get(ny-2, px_+1) == -1 && get(ny-2, px_+2) != -1)  
+			{
+				dropPiece(1);
+			}
+	    	int rm = 0;
 /*			int level = 1 + linesCleared_ / 10;
 			switch (rm)
 			{
@@ -404,6 +412,7 @@ int Game::tick()
 	}
 	else 
 	{
+		markBlocksForClearing();
 		placePiece(piece_, px_, ny);
 		py_ = ny;
 		return 0;
@@ -560,3 +569,14 @@ void Game::dropShadowPiece()
 	if(ny != sy_)
 	  sy_ = ny;
 }
+
+void Game::moveClearBar()
+{
+	if (clearBarPos > board_width_)
+	{
+		clearBarPos = 0;
+	}
+	clearBarPos += 0.2;
+//	collapse();
+}
+

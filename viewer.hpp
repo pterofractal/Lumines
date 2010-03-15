@@ -51,7 +51,7 @@ public:
 	void printString(const char *s);
 	
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
-
+	bool moveClearBar();
 protected:
 
 	// Events we implement
@@ -106,7 +106,7 @@ private:
 	bool doubleBuffer;
 	
 	// Timer used to call the tick method
-	sigc::connection tickTimer;
+	sigc::connection tickTimer, clearBarTimer;
 	
 	// Timer for rotate
 	sigc::connection rotateTimer;

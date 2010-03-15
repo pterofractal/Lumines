@@ -6,7 +6,10 @@
 #include <assert.h>
 #include "appwindow.hpp"
 
-#define DEFAULT_GAME_SPEED 500
+#define DEFAULT_GAME_SPEED 50
+#define WIDTH	16
+#define HEIGHT 	10
+
 Viewer::Viewer()
 {
 	
@@ -69,10 +72,11 @@ Viewer::Viewer()
 				Gdk::VISIBILITY_NOTIFY_MASK);
 		
 	// Create Game
-	game = new Game(10, 20);
+	game = new Game(WIDTH, HEIGHT);
 	
 	// Start game tick timer
 	tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
+//	clearBarTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::moveClearBar), 50);
 }
 
 Viewer::~Viewer()
@@ -135,7 +139,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
-	glTranslated(0.0, 0.0, -40.0);
+	glTranslated(-3.0, 5.0, -30.0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -203,26 +207,33 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// it appear centered in the window.
 	glTranslated(-5.0, -12.0, 0.0);
 	
-
+	
+	
+	glBegin(GL_LINE_LOOP);
+		glVertex3d(game->getClearBarPos(), 0, 0);
+		glVertex3d(game->getClearBarPos(), 0, 1);
+		glVertex3d(game->getClearBarPos(), HEIGHT, 1);
+		glVertex3d(game->getClearBarPos(), HEIGHT, 0);
+	glEnd();
 	
 	// Draw Border
-	for (int y = -1;y< 20;y++)
+	for (int y = -1;y< HEIGHT;y++)
 	{
 		drawCube(y, -1, 7, GL_LINE_LOOP);
 		
-		drawCube(y, 10, 7, GL_LINE_LOOP);
+		drawCube(y, WIDTH, 7, GL_LINE_LOOP);
 	}
-	for (int x = 0;x < 10; x++)
+	for (int x = 0;x < WIDTH; x++)
 	{
 		drawCube (-1, x, 7, GL_LINE_LOOP);
 	}
 	
-	// Draw current state of tetris
+	// Draw current state of Lumines
 	if (currentDrawMode == Viewer::WIRE)
 	{
-		for (int i = 23;i>=0;i--) // row
+		for (int i = HEIGHT + 3;i>=0;i--) // row
 		{
-			for (int j = 9; j>=0;j--) // column
+			for (int j = WIDTH - 1; j>=0;j--) // column
 			{
 				drawCube (i, j, game->get(i, j), GL_LINE_LOOP );
 			}
@@ -230,9 +241,9 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	}
 	else if (currentDrawMode == Viewer::MULTICOLOURED)
 	{
-		for (int i = 23;i>=0;i--) // row
+		for (int i = HEIGHT + 3;i>=0;i--) // row
 		{
-			for (int j = 9; j>=0;j--) // column
+			for (int j = WIDTH - 1; j>=0;j--) // column
 			{	
 				// Draw outline for cube
 				if (game->get(i, j) != -1)
@@ -244,9 +255,9 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	}
 	else if (currentDrawMode == Viewer::FACE)
 	{
-		for (int i = 23;i>=0;i--) // row
+		for (int i = HEIGHT+3;i>=0;i--) // row
 		{
-			for (int j = 9; j>=0;j--) // column
+			for (int j = WIDTH - 1; j>=0;j--) // column
 			{				
 				// Draw outline for cube
 				if (game->get(i, j) != -1)
@@ -728,3 +739,11 @@ void Viewer::setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared)
 	scoreLabel = score;
 	linesClearedLabel = linesCleared;
 }
+
+bool Viewer::moveClearBar()
+{
+	game->moveClearBar();
+	invalidate();
+	return true;
+}
+
