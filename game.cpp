@@ -16,6 +16,7 @@
 
 #include "game.hpp"
 int counter = 0;
+int lastClearedRow = -1;
 static const Piece PIECES[] = {
   Piece(
         "...."
@@ -271,22 +272,21 @@ void Game::markBlocksForClearing()
 
 int Game::collapse()
 {
-	//removePiece(piece_, px_, py_);
+	int c = (int)clearBarPos;
+	if (c == lastClearedRow)
+		return 0;
+		
 	for (int r = board_height_ + 2; r>= 0; --r)
-	{
-	//	for (int c = 0; c<clearBarPos - 1; ++c)
-	//	{	
-				int c = (int)clearBarPos;
-				
-				if (get(r, c) == 3 || get(r, c) == 4 )
-				{
-					// Collapse
-					get(r, c) = -1;
-					pullDown(r, c);
-				}
-		//}
+	{					
+		if (get(r, c) == 3 || get(r, c) == 4 )
+		{
+			// Collapse
+			get(r, c) = -1;
+			pullDown(r, c);
+			lastClearedRow = c;
+		}
 	}
-	//placePiece(piece_, px_, py_);
+	
 	// Pull pieces down
 	return 0;
 }
@@ -334,6 +334,7 @@ int Game::tick()
 	}
 	
 	removePiece(piece_, px_, py_);
+	markBlocksForClearing();
 	collapse();
 	moveClearBar();
 	if (counter < 10)
@@ -349,7 +350,6 @@ int Game::tick()
 	if(!doesPieceFit(piece_, px_, ny)) 
 	{
 		// Must finish off with this piece
-		markBlocksForClearing();
 		placePiece(piece_, px_, py_);
 		if(py_ >= board_height_ + 1) 
 		{
@@ -412,7 +412,6 @@ int Game::tick()
 	}
 	else 
 	{
-		markBlocksForClearing();
 		placePiece(piece_, px_, ny);
 		py_ = ny;
 		return 0;
