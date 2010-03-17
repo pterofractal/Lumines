@@ -52,6 +52,8 @@ public:
 	
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
 	bool moveClearBar();
+	void draw_start_screen(bool picking);
+	
 protected:
 
 	// Events we implement
@@ -134,6 +136,9 @@ private:
 		
 	// Label widgets
 	Gtk::Label *scoreLabel, *linesClearedLabel;
+	
+	// Boot screen
+	bool loadScreen;
 };
 
 #endif

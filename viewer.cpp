@@ -34,6 +34,9 @@ Viewer::Viewer()
 	rotateAboutY = false;
 	rotateAboutZ = false;
 	
+	// 
+	loadScreen = true;
+	
 	
 	// Game starts at a slow pace of 500ms
 	gameSpeed = 500;
@@ -52,8 +55,7 @@ Viewer::Viewer()
 	//	- Multisample rendering to smooth out edges
 	glconfig = Gdk::GL::Config::create(	Gdk::GL::MODE_RGB |
 										Gdk::GL::MODE_DEPTH |
-										Gdk::GL::MODE_DOUBLE |
-										Gdk::GL::MODE_MULTISAMPLE );
+										Gdk::GL::MODE_DOUBLE );
 	if (glconfig == 0) {
 	  // If we can't get this configuration, die
 	  abort();
@@ -109,6 +111,15 @@ void Viewer::on_realize()
 	
 	// Just enable depth testing and set the background colour.
 	glEnable(GL_DEPTH_TEST);
+
+/*	// Basic line anti aliasing
+	// Blendfunc is set wrong though. Need to figure out what is good
+	glEnable (GL_LINE_SMOOTH);
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_COLOR, GL_DST_COLOR);
+	glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
+	glLineWidth (1.0);
+*/
 	glClearColor(0.7, 0.7, 1.0, 0.0);
 	
 	gldrawable->gl_end();
@@ -208,6 +219,27 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glTranslated(-5.0, -12.0, 0.0);
 	
 	
+	if (loadScreen)
+	{
+		draw_start_screen(false);
+		
+		// We pushed a matrix onto the PROJECTION stack earlier, we 
+		// need to pop it.
+
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+
+		// Swap the contents of the front and back buffers so we see what we
+		// just drew. This should only be done if double buffering is enabled.
+		if (doubleBuffer)
+			gldrawable->swap_buffers();
+		else
+			glFlush();	
+
+		gldrawable->gl_end();
+
+		return true;
+	}
 	
 	glBegin(GL_LINE_LOOP);
 		glVertex3d(game->getClearBarPos(), 0, 0);
@@ -216,6 +248,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		glVertex3d(game->getClearBarPos(), HEIGHT, 0);
 	glEnd();
 	
+
 	// Draw Border
 	for (int y = -1;y< HEIGHT;y++)
 	{
@@ -272,7 +305,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	{
 		// Some game over animation
 	}
-	
+
  	// We pushed a matrix onto the PROJECTION stack earlier, we 
 	// need to pop it.
 
@@ -323,7 +356,41 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 	startPos[1] = event->y;
 	mouseDownPos[0] = event->x;
 	mouseDownPos[1] = event->y;
-	
+	if (loadScreen)
+	{
+		GLuint buff[128] = {0};
+	 	GLint hits, view[4];
+
+			glSelectBuffer(128,buff);
+		glRenderMode(GL_SELECT);
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glTranslated(-3.0, 5.0, -30.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glTranslated(-5.0, -12.0, 0.0);
+		glInitNames();
+		glPushName(0);
+			draw_start_screen(true);
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glFlush();
+
+		// returning to normal rendering mode
+		hits = glRenderMode(GL_RENDER);
+
+		// if there are hits process them
+
+		std::cerr << "Hits " << hits << std::endl;
+
+		if (hits > 0)
+		{
+			loadScreen = false;
+		}
+	}
 	// Stop rotating if a mosue button was clicked and the shift button is not down
 	if ((rotateAboutX || rotateAboutY || rotateAboutZ) && !shiftIsDown)
 	{
@@ -657,6 +724,9 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 
 bool Viewer::gameTick()
 {
+	if (loadScreen)
+		return true;
+		
 	int returnVal = game->tick();
 	
 	// String streams used to print score and lines cleared	
@@ -747,3 +817,94 @@ bool Viewer::moveClearBar()
 	return true;
 }
 
+void Viewer::draw_start_screen(bool pick)
+{
+	if (pick)
+		glPushName(1);
+	
+/*		for (int i = HEIGHT + 3;i>=0;i--) // row
+		{
+			for (int j = WIDTH - 1; j>=0;j--) // column
+			*/
+//				glEnable(GL_POLYGON_SMOOTH); 
+	drawCube (3, 0, 7, GL_LINE_LOOP );
+	drawCube (4, 0, 7, GL_LINE_LOOP );
+	drawCube (5, 0, 7, GL_LINE_LOOP );
+	drawCube (6, 0, 7, GL_LINE_LOOP );
+	drawCube (7, 0, 7, GL_LINE_LOOP );
+	drawCube (7, 1, 7, GL_LINE_LOOP );
+	drawCube (7, 2, 7, GL_LINE_LOOP );
+	drawCube (5, 1, 7, GL_LINE_LOOP );
+	drawCube (5, 2, 7, GL_LINE_LOOP );
+	drawCube (6, 2, 7, GL_LINE_LOOP );
+				
+	drawCube (3, 0, 3, GL_QUADS );
+	drawCube (4, 0, 3, GL_QUADS );
+	drawCube (5, 0, 3, GL_QUADS );
+	drawCube (6, 0, 3, GL_QUADS );
+	drawCube (7, 0, 3, GL_QUADS );
+	drawCube (7, 1, 3, GL_QUADS );
+	drawCube (7, 2, 3, GL_QUADS );
+	drawCube (5, 1, 3, GL_QUADS );
+	drawCube (5, 2, 3, GL_QUADS );
+	drawCube (6, 2, 3, GL_QUADS );
+	
+	
+	drawCube(3, 4, 7, GL_LINE_LOOP);
+	drawCube(4, 4, 7, GL_LINE_LOOP);
+	drawCube(5, 4, 7, GL_LINE_LOOP);
+	drawCube(6, 4, 7, GL_LINE_LOOP);
+	drawCube(7, 4, 7, GL_LINE_LOOP);
+	drawCube(3, 5, 7, GL_LINE_LOOP);
+	drawCube(3, 6, 7, GL_LINE_LOOP);
+	
+	drawCube(3, 4, 4, GL_QUADS);
+	drawCube(4, 4, 4, GL_QUADS);
+	drawCube(5, 4, 4, GL_QUADS);
+	drawCube(6, 4, 4, GL_QUADS);
+	drawCube(7, 4, 4, GL_QUADS);
+	drawCube(3, 5, 4, GL_QUADS);
+	drawCube(3, 6, 4, GL_QUADS);
+	
+	drawCube(3, 8, 7, GL_LINE_LOOP);
+	drawCube(4, 8, 7, GL_LINE_LOOP);
+	drawCube(5, 8, 7, GL_LINE_LOOP);
+	drawCube(6, 8, 7, GL_LINE_LOOP);
+	drawCube(7, 9, 7, GL_LINE_LOOP);
+	drawCube(4, 9,  7, GL_LINE_LOOP);
+	drawCube(3, 10, 7, GL_LINE_LOOP);
+	drawCube(4, 10, 7, GL_LINE_LOOP);
+	drawCube(5, 10, 7, GL_LINE_LOOP);
+	drawCube(6, 10, 7, GL_LINE_LOOP);
+	
+	drawCube(3, 8, 5, GL_QUADS);
+	drawCube(4, 8, 5, GL_QUADS);
+	drawCube(5, 8, 5, GL_QUADS);
+	drawCube(6, 8, 5, GL_QUADS);
+	drawCube(7, 9, 5, GL_QUADS);
+	drawCube(4, 9, 5, GL_QUADS);
+	drawCube(3, 10, 5,GL_QUADS);
+	drawCube(4, 10, 5,GL_QUADS);
+	drawCube(5, 10, 5,GL_QUADS);
+	drawCube(6, 10, 5,GL_QUADS);
+	
+	drawCube(3, 13, 7, GL_LINE_LOOP);
+	drawCube(4, 13, 7, GL_LINE_LOOP);
+	drawCube(5, 13, 7, GL_LINE_LOOP);
+	drawCube(6, 12, 7, GL_LINE_LOOP);
+	drawCube(7, 12, 7, GL_LINE_LOOP);
+	drawCube(6, 14, 7, GL_LINE_LOOP);
+	drawCube(7, 14, 7, GL_LINE_LOOP);
+	
+	drawCube(3, 13, 6, GL_QUADS);
+	drawCube(4, 13, 6, GL_QUADS);
+	drawCube(5, 13, 6, GL_QUADS);
+	drawCube(6, 12, 6, GL_QUADS);
+	drawCube(7, 12, 6, GL_QUADS);
+	drawCube(6, 14, 6, GL_QUADS);
+	drawCube(7, 14, 6, GL_QUADS);
+//		glDisable(GL_MULTISAMPLE_ARB);
+	
+	if (pick)
+		glPopName();
+}
