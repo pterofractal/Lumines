@@ -443,9 +443,7 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 	if (!shiftIsDown)
 	{
 		// Set the rotation speed based on how far the cursor has moved since the mouse down event
-		long difference = (long)timeOfLastMotionEvent - (long)event->time;
-		if (difference > -50)
-			rotationSpeed = (event->x - mouseDownPos[0]) / 10;	
+	
 	}
 
 	// Set the appropriate flags to true and false
