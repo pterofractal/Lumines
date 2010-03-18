@@ -35,8 +35,10 @@ Viewer::Viewer()
 	rotateAboutZ = false;
 	
 	// 
-	loadScreen = true;
+	loadScreen = false;
 	
+	activeTextureId = 0;
+	loadTexture = false;
 	
 	// Game starts at a slow pace of 500ms
 	gameSpeed = 500;
@@ -109,6 +111,8 @@ void Viewer::on_realize()
 	if (!gldrawable->gl_begin(get_gl_context()))
 		return;
 	
+	LoadGLTextures("256.bmp");
+		
 	// Just enable depth testing and set the background colour.
 	glEnable(GL_DEPTH_TEST);
 
@@ -134,6 +138,8 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	if (!gldrawable->gl_begin(get_gl_context()))
 		return false;
 
+	if (loadTexture)
+		glEnable(GL_TEXTURE_2D);
 	// Decide which buffer to write to
 	if (doubleBuffer)
 		glDrawBuffer(GL_BACK);	
@@ -218,6 +224,19 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// it appear centered in the window.
 	glTranslated(-5.0, -12.0, 0.0);
 	
+	// Create one light source
+/*	glEnable(GL_LIGHT0);
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	// Define properties of light 
+	float ambientLight0[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+	float diffuseLight0[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+	float specularLight0[] = { 0.6f, 0.6f, 0.6f, 1.0f };
+	float position0[] = { 20.0f, 5.0f, 2.0f, 1.0f };	
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight0);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
+	glLightfv(GL_LIGHT0, GL_POSITION, position0);*/
 	
 	if (loadScreen)
 	{
@@ -577,82 +596,96 @@ void Viewer::drawCube(int y, int x, int colourId, GLenum mode, bool multiColour)
 	double zMax = 1;
 	double zMin = 0;
 	
-	// Front face
+	 
 	glNormal3d(1, 0, 0);
-		
+	
+	if (loadTexture)
+		glBindTexture(GL_TEXTURE_2D, texture[activeTextureId]);
+
 	glColor3d(r, g, b);
+			
 	glBegin(mode);
+	 	glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
+		glTexCoord2f(1.0f, 1.0f);
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);	
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
 	
 	// top face
 	glNormal3d(0, 1, 0);
 	
-	if (multiColour)
-		glColor3d(g, r, b);
-
 	glBegin(mode);
+	 	glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
 	
 	// left face
 	glNormal3d(0, 0, 1);
-	
-	if (multiColour)
-		glColor3d(b, g, r);
 
 	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// bottom face
 	glNormal3d(0, 1, 0);
-	
-	if (multiColour)
-		glColor3d(r, b, g);	
 
 	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// right face
 	glNormal3d(0, 0, 1);
 	
-	if (multiColour)
-		glColor3d(b, r, g);
-	
 	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// Back of front face
 	glNormal3d(1, 0, 0);
 
-	if (multiColour)
-		glColor3d(g, b, r);
-
 	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);	
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
 	glEnd();
 }
+
 
 void Viewer::startScale()
 {
@@ -907,4 +940,122 @@ void Viewer::draw_start_screen(bool pick)
 	
 	if (pick)
 		glPopName();
+}
+
+// quick and dirty bitmap loader...for 24 bit bitmaps with 1 plane only.  
+// See http://www.dcs.ed.ac.uk/~mxr/gfx/2d/BMP.txt for more info.
+int Viewer::ImageLoad(char *filename, Image *image) {
+    FILE *file;
+    unsigned long size;                 // size of the image in bytes.
+    unsigned long i;                    // standard counter.
+    unsigned short int planes;          // number of planes in image (must be 1) 
+    unsigned short int bpp;             // number of bits per pixel (must be 24)
+    char temp;                          // temporary color storage for bgr-rgb conversion.
+
+    // make sure the file is there.
+    if ((file = fopen(filename, "rb"))==NULL)
+    {
+	printf("File Not Found : %s\n",filename);
+	return 0;
+    }
+    
+    // seek through the bmp header, up to the width/height:
+    fseek(file, 18, SEEK_CUR);
+
+    // read the width
+    if ((i = fread(&image->sizeX, 4, 1, file)) != 1) {
+	printf("Error reading width from %s.\n", filename);
+	return 0;
+    }
+    printf("Width of %s: %lu\n", filename, image->sizeX);
+    
+    // read the height 
+    if ((i = fread(&image->sizeY, 4, 1, file)) != 1) {
+	printf("Error reading height from %s.\n", filename);
+	return 0;
+    }
+    printf("Height of %s: %lu\n", filename, image->sizeY);
+    
+    // calculate the size (assuming 24 bits or 3 bytes per pixel).
+    size = image->sizeX * image->sizeY * 3;
+
+    // read the planes
+    if ((fread(&planes, 2, 1, file)) != 1) {
+	printf("Error reading planes from %s.\n", filename);
+	return 0;
+    }
+    if (planes != 1) {
+	printf("Planes from %s is not 1: %u\n", filename, planes);
+	return 0;
+    }
+
+    // read the bpp
+    if ((i = fread(&bpp, 2, 1, file)) != 1) {
+	printf("Error reading bpp from %s.\n", filename);
+	return 0;
+    }
+    if (bpp != 24) {
+	printf("Bpp from %s is not 24: %u\n", filename, bpp);
+	return 0;
+    }
+	
+    // seek past the rest of the bitmap header.
+    fseek(file, 24, SEEK_CUR);
+
+    // read the data. 
+    image->data = (char *) malloc(size);
+    if (image->data == NULL) {
+	printf("Error allocating memory for color-corrected image data");
+	return 0;	
+    }
+
+    if ((i = fread(image->data, size, 1, file)) != 1) {
+	printf("Error reading image data from %s.\n", filename);
+	return 0;
+    }
+
+    for (i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
+	temp = image->data[i];
+	image->data[i] = image->data[i+2];
+	image->data[i+2] = temp;
+    }
+    
+    // we're done.
+    return 1;
+}
+    
+// Load Bitmaps And Convert To Textures
+void  Viewer::LoadGLTextures(char *filename) {	
+    // Load Texture
+    Image *image1;
+    
+    // allocate space for texture
+    image1 = (Image *) malloc(sizeof(Image));
+    if (image1 == NULL) {
+	printf("Error allocating space for image");
+	exit(0);
+    }
+
+    if (!ImageLoad(filename, image1)) {
+	exit(1);
+    }        
+
+    // Create Texture	
+    glGenTextures(1, &texture[0]);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);   // 2d texture (x and y size)
+
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); // scale linearly when image bigger than texture
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); // scale linearly when image smalled than texture
+
+    // 2d texture, level of detail 0 (normal), 3 components (red, green, blue), x size from image, y size from image, 
+    // border 0 (normal), rgb color data, unsigned byte data, and finally the data itself.
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, image1->sizeX, image1->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, image1->data);
+}
+
+void Viewer::toggleTexture()
+{
+	loadTexture = !loadTexture;
+	
+	if (!loadTexture)
+		glDisable(GL_TEXTURE_2D);
 }

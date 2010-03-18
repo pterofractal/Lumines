@@ -46,6 +46,7 @@ public:
 		
 	void resetView();
 	void newGame();
+	void toggleTexture();
 	
 	void makeRasterFont();
 	void printString(const char *s);
@@ -53,6 +54,20 @@ public:
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
 	bool moveClearBar();
 	void draw_start_screen(bool picking);
+	
+	/* storage for one texture  */
+	GLuint texture[1];
+
+	/* Image type - contains height, width, and data */
+	struct Image {
+	    unsigned long sizeX;
+	    unsigned long sizeY;
+	    char *data;
+	};
+	typedef struct Image Image;
+	
+	int ImageLoad(char *filename, Image *image);
+	void LoadGLTextures(char *filename);
 	
 protected:
 
@@ -139,6 +154,10 @@ private:
 	
 	// Boot screen
 	bool loadScreen;
+	
+	int activeTextureId;
+	
+	bool loadTexture;
 };
 
 #endif
