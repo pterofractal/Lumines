@@ -56,7 +56,8 @@ public:
 	void draw_start_screen(bool picking);
 	
 	/* storage for one texture  */
-	GLuint texture[1];
+	int numTextures;
+	GLuint texture[5];
 
 	/* Image type - contains height, width, and data */
 	struct Image {

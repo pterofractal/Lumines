@@ -15,6 +15,11 @@
 #include <algorithm>
 
 #include "game.hpp"
+#define XBLOCKCOL 1
+#define OBLOCKCOL 2
+#define XCLEARBLOCKCOL 3
+#define OCLEARBLOCKCOL 4
+
 int counter = 0;
 int lastClearedRow = -1;
 static const Piece PIECES[] = {
@@ -101,9 +106,9 @@ int Piece::getBottomMargin() const
 int Piece::getColourIndex(int row, int col) const
 {
 	if (desc_[ row*4 + col ] == 'x')
-		return 1;
+		return XBLOCKCOL;
 	else if (desc_[ row*4 + col ] == 'o')
-		return 2;
+		return OBLOCKCOL;
 	
 	return 0;
 }
@@ -278,7 +283,7 @@ int Game::collapse()
 		
 	for (int r = board_height_ + 2; r>= 0; --r)
 	{					
-		if (get(r, c) == 3 || get(r, c) == 4 )
+		if (get(r, c) == XCLEARBLOCKCOL || get(r, c) == OCLEARBLOCKCOL )
 		{
 			// Collapse
 			get(r, c) = -1;

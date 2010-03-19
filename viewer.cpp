@@ -47,7 +47,7 @@ Viewer::Viewer()
 	doubleBuffer = false;
 	
 	gameOver = false;
-
+	numTextures = 0;
 	Glib::RefPtr<Gdk::GL::Config> glconfig;
 	
 	// Ask for an OpenGL Setup with
@@ -111,8 +111,12 @@ void Viewer::on_realize()
 	if (!gldrawable->gl_begin(get_gl_context()))
 		return;
 	
-	LoadGLTextures("256.bmp");
-		
+    glGenTextures(5, texture);
+	LoadGLTextures("red.bmp");
+	LoadGLTextures("blue.bmp");
+	LoadGLTextures("lightRed.bmp");
+	LoadGLTextures("lightBlue.bmp");
+	LoadGLTextures("black.bmp");
 	// Just enable depth testing and set the background colour.
 	glEnable(GL_DEPTH_TEST);
 
@@ -222,7 +226,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// 10 and height 24 (game = 20, stripe = 4).  Let's translate
 	// the game so that we can draw it starting at (0,0) but have
 	// it appear centered in the window.
-	glTranslated(-5.0, -12.0, 0.0);
+	glTranslated(-5.0, -10.0, 10.0);
 	
 	// Create one light source
 /*	glEnable(GL_LIGHT0);
@@ -536,7 +540,7 @@ void Viewer::drawCube(int y, int x, int colourId, GLenum mode, bool multiColour)
 {
 	if (mode == GL_LINE_LOOP)
 		glLineWidth (2);
-	
+			
 	double r, g, b;
 	r = 0;
 	g = 0;
@@ -597,10 +601,13 @@ void Viewer::drawCube(int y, int x, int colourId, GLenum mode, bool multiColour)
 	 
 	glNormal3d(1, 0, 0);
 	
-	if (loadTexture)
-		glBindTexture(GL_TEXTURE_2D, texture[activeTextureId]);
+	if (loadTexture && colourId < 5)
+		glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
+	else if (loadTexture && colourId == 7)
+		glBindTexture(GL_TEXTURE_2D, texture[4]);
+	else
+		glColor3d(r, g, b);
 
-	glColor3d(r, g, b);
 			
 	glBegin(mode);
 	 	glTexCoord2f(0.0f, 0.0f);
@@ -1039,15 +1046,16 @@ void  Viewer::LoadGLTextures(char *filename) {
     }        
 
     // Create Texture	
-    glGenTextures(1, &texture[0]);
-    glBindTexture(GL_TEXTURE_2D, texture[0]);   // 2d texture (x and y size)
+    glBindTexture(GL_TEXTURE_2D, texture[numTextures]);   // 2d texture (x and y size)
 
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); // scale linearly when image bigger than texture
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); // scale linearly when image smalled than texture
-
+	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
     // 2d texture, level of detail 0 (normal), 3 components (red, green, blue), x size from image, y size from image, 
     // border 0 (normal), rgb color data, unsigned byte data, and finally the data itself.
     glTexImage2D(GL_TEXTURE_2D, 0, 3, image1->sizeX, image1->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, image1->data);
+
+	numTextures++;
 }
 
 void Viewer::toggleTexture()
