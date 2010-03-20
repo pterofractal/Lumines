@@ -3,13 +3,14 @@
 #include <sstream>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 #include <assert.h>
 #include "appwindow.hpp"
 
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
-
+int SND_ID_1 , SND_ID_2, SND_ID_3, MUS_ID_4;
 Viewer::Viewer()
 {
 	
@@ -20,7 +21,7 @@ Viewer::Viewer()
 	rotationSpeed = 0;
 	
 	// Default draw mode is multicoloured
-	currentDrawMode = Viewer::MULTICOLOURED;
+	currentDrawMode = Viewer::FACE;
 
 	// Default scale factor is 1
 	scaleFactor = 1;
@@ -39,7 +40,8 @@ Viewer::Viewer()
 	
 	activeTextureId = 0;
 	loadTexture = false;
-	
+	loadBumpMapping = false;
+	transluceny = false;
 	// Game starts at a slow pace of 500ms
 	gameSpeed = 500;
 	
@@ -48,6 +50,10 @@ Viewer::Viewer()
 	
 	gameOver = false;
 	numTextures = 0;
+	
+	
+	
+	
 	Glib::RefPtr<Gdk::GL::Config> glconfig;
 	
 	// Ask for an OpenGL Setup with
@@ -111,14 +117,38 @@ void Viewer::on_realize()
 	if (!gldrawable->gl_begin(get_gl_context()))
 		return;
 	
-    glGenTextures(5, texture);
-	LoadGLTextures("red.bmp");
-	LoadGLTextures("blue.bmp");
-	LoadGLTextures("lightRed.bmp");
-	LoadGLTextures("lightBlue.bmp");
-	LoadGLTextures("black.bmp");
+	texture = new GLuint[7];
+	LoadGLTextures("red.bmp", texture[0]);
+	LoadGLTextures("blue.bmp", texture[1]);
+	LoadGLTextures("lightRed.bmp", texture[2]);
+	LoadGLTextures("lightBlue.bmp", texture[3]);
+	LoadGLTextures("black.bmp", texture[4]);
+	LoadGLTextures("normal.bmp", bumpMap);
+	LoadGLTextures("floor.bmp", floorTexId);
+	std::cout << "normal\t" << bumpMap << "\n";
+	
+	
+	// Load music
+	backgroundMusic = sm.LoadSound("lumines.ogg");
+	moveSound = sm.LoadSound("move.ogg");
+	turnSound = sm.LoadSound("turn.ogg");
+//	sm.PlaySound(backgroundMusic);
+
+
+	GenNormalizationCubeMap(256, normalization_cube_map);
 	// Just enable depth testing and set the background colour.
-	glEnable(GL_DEPTH_TEST);
+	//	glEnable(GL_DEPTH_TEST);
+	
+	
+	
+	
+	glClearDepth (1.0f);								
+	glDepthFunc (GL_LEQUAL);							
+	glEnable (GL_DEPTH_TEST);							
+	glShadeModel (GL_SMOOTH);							
+	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	
+	
+	
 
 /*	// Basic line anti aliasing
 	// Blendfunc is set wrong though. Need to figure out what is good
@@ -129,6 +159,17 @@ void Viewer::on_realize()
 	glLineWidth (1.0);
 */
 	glClearColor(0.7, 0.7, 1.0, 0.0);
+	
+	
+	
+/*	backgroundSoundBuf = sm.LoadWav("OBS.wav");
+	backgroundSoundIndex = sm.MakeSource();
+	sm.QueueBuffer(backgroundSoundIndex, backgroundSoundBuf);
+	
+	backgroundSoundBuf = sm.LoadWav("cutman.wav");
+	backgroundSoundIndex = sm.MakeSource();
+	sm.QueueBuffer(backgroundSoundIndex, backgroundSoundBuf);*/
+	
 	
 	gldrawable->gl_end();
 }
@@ -141,9 +182,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 	if (!gldrawable->gl_begin(get_gl_context()))
 		return false;
-
-	if (loadTexture)
-		glEnable(GL_TEXTURE_2D);
+		
 	// Decide which buffer to write to
 	if (doubleBuffer)
 		glDrawBuffer(GL_BACK);	
@@ -179,7 +218,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	// Define properties of light 
-	float ambientLight0[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+/*	float ambientLight0[] = { 0.3f, 0.3f, 0.3f, 1.0f };
 	float diffuseLight0[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 	float specularLight0[] = { 0.6f, 0.6f, 0.6f, 1.0f };
 	float position0[] = { 5.0f, 0.0f, 0.0f, 1.0f };	
@@ -187,7 +226,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
 	glLightfv(GL_LIGHT0, GL_POSITION, position0);
-	
+	*/
 	// Scale and rotate the scene
 	
 	if (scaleFactor != 1)
@@ -229,7 +268,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glTranslated(-5.0, -10.0, 10.0);
 	
 	// Create one light source
-/*	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	// Define properties of light 
@@ -237,10 +276,13 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	float diffuseLight0[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 	float specularLight0[] = { 0.6f, 0.6f, 0.6f, 1.0f };
 	float position0[] = { 20.0f, 5.0f, 2.0f, 1.0f };	
+	lightPos[0] = 20.0;
+	lightPos[1] = 5.0;
+	lightPos[2] = 2.0;
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight0);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
-	glLightfv(GL_LIGHT0, GL_POSITION, position0);*/
+	glLightfv(GL_LIGHT0, GL_POSITION, position0);
 	
 	if (loadScreen)
 	{
@@ -271,7 +313,26 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		glVertex3d(game->getClearBarPos(), HEIGHT, 0);
 	glEnd();
 	
-
+	
+	// Draw Floor
+/*	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, floorTexId);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );*/
+	glColor3d(1, 1, 1);
+	glBegin(GL_QUADS);
+//		glTexCoord2f(0.0, 0.0);
+		glVertex3d(-100, -1, -100);
+//		glTexCoord2f(0.0, 10.0);
+		glVertex3d(-100, -1, 100);
+//		glTexCoord2f(10.0, 10.0);
+		glVertex3d(100, -1, 100);
+//		glTexCoord2f(10.0, 0.0);
+		glVertex3d(100, -1, -100);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+	
 	// Draw Border
 	for (int y = -1;y< HEIGHT;y++)
 	{
@@ -315,11 +376,15 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		{
 			for (int j = WIDTH - 1; j>=0;j--) // column
 			{				
+				
+				if (loadBumpMapping)
+					drawBumpCube(i, j, game->get(i,j), GL_QUADS);
+				else
+					drawCube (i, j, game->get(i, j), GL_QUADS );
+					
 				// Draw outline for cube
 				if (game->get(i, j) != -1)
 					drawCube(i, j, 7, GL_LINE_LOOP);
-					
-				drawCube (i, j, game->get(i, j), GL_QUADS );
 			}
 		}	
 	}	
@@ -539,7 +604,184 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 void Viewer::drawCube(int y, int x, int colourId, GLenum mode, bool multiColour)
 {
 	if (mode == GL_LINE_LOOP)
-		glLineWidth (2);
+		glLineWidth (1.2);
+			
+	double r, g, b;
+	r = 0;
+	g = 0;
+	b = 0;
+	switch (colourId)
+	{
+		case 0:	// blue
+			r = 0.514;
+			g = 0.839;
+			b = 0.965;
+			break;              
+		case 1:	// purple       
+			r = 0.553;          
+			g = 0.6;            
+			b = 0.796;          
+			break;              
+		case 2: // orange       
+			r = 0.988;          
+			g = 0.627;          
+			b = 0.373;          
+			break;              
+		case 3:	// green        
+			r = 0.69;           
+			g = 0.835;          
+			b = 0.529;          
+			break;              
+		case 4:	// red          
+			r = 1.00;           
+			g = 0.453;          
+			b = 0.339;          
+			break;              
+		case 5:	// pink         
+			r = 0.949;          
+			g = 0.388;          
+			b = 0.639;          
+			break;              
+		case 6:	// yellow       
+			r = 1;              
+			g = 0.792;          
+			b = 0.204;          
+			break;
+		case 7:	// black
+			r = 0;
+			g = r;
+			b = g;
+			break;
+		default:
+			return;
+	}
+	
+	double innerXMin = 0;
+	double innerYMin = 0;
+	double innerXMax = 1;
+	double innerYMax = 1;
+	double zMax = 1;
+	double zMin = 0;
+	
+	if (transluceny)
+	{
+		glColor4f(1.0f,1.0f,1.0f,0.5f);
+		glEnable (GL_BLEND);
+		glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	} 
+	
+	glNormal3d(1, 0, 0);
+	
+	if (loadTexture && colourId != 7)
+	{		
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
+	}
+
+	else if (loadTexture && colourId == 7)
+	{
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, texture[4]);	
+	}	
+	else
+	{
+		glColor3d(r, g, b);
+	}
+
+	glBegin(mode);
+	 	glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMax);
+		
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMax);
+
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+
+		glTexCoord2f(0.0f, 1.0f);	
+		glVertex3d(innerXMin + x, innerYMax + y, zMax);
+	glEnd();
+
+	// top face
+	glNormal3d(0, 1, 0);
+	
+	glBegin(mode);
+	 	glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(innerXMin + x, innerYMax + y, zMax);
+	glEnd();
+	
+	// left face
+	glNormal3d(0, 0, -1);
+
+	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3d(innerXMin + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMax);
+	glEnd();
+	
+	// bottom face
+	glNormal3d(0, -1, 0);
+
+	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMax);
+	glEnd();
+	
+	// right face
+	glNormal3d(0, 0, 1);
+	
+	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3d(innerXMax + x, innerYMax + y, zMax);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMax);
+	glEnd();
+	
+	// Back of front face
+	glNormal3d(-1, 0, 0);
+
+	glBegin(mode);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(innerXMin + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(innerXMax + x, innerYMin + y, zMin);
+		glTexCoord2f(1.0f, 1.0f);	
+		glVertex3d(innerXMax + x, innerYMax + y, zMin);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(innerXMin + x, innerYMax + y, zMin);
+	glEnd();
+	
+	glBindTexture(GL_TEXTURE_2D, 0);
+	if (transluceny)
+		glDisable(GL_BLEND);
+
+}
+
+void Viewer::drawBumpCube(int y, int x, int colourId, GLenum mode, bool multiColour)
+{
+	if (mode == GL_LINE_LOOP)
+		glLineWidth (1.2);
 			
 	double r, g, b;
 	r = 0;
@@ -599,96 +841,234 @@ void Viewer::drawCube(int y, int x, int colourId, GLenum mode, bool multiColour)
 	double zMin = 0;
 	
 	 
-	glNormal3d(1, 0, 0);
-	
-	if (loadTexture && colourId < 5)
-		glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
-	else if (loadTexture && colourId == 7)
-		glBindTexture(GL_TEXTURE_2D, texture[4]);
-	else
-		glColor3d(r, g, b);
+//	glNormal3d(1, 0, 0);
+	glBlendFunc(GL_DST_COLOR, GL_ZERO);
+	glEnable(GL_BLEND);
+		// Set The First Texture Unit To Normalize Our Vector From The Surface To The Light.
+		// Set The Texture Environment Of The First Texture Unit To Replace It With The
+		// Sampled Value Of The Normalization Cube Map.
+		glActiveTexture(GL_TEXTURE0);
+		glEnable(GL_TEXTURE_CUBE_MAP);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, normalization_cube_map);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+		glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE) ;
+		glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE) ;
 
-			
+		// Set The Second Unit To The Bump Map.
+		// Set The Texture Environment Of The Second Texture Unit To Perform A Dot3
+		// Operation With The Value Of The Previous Texture Unit (The Normalized
+		// Vector Form The Surface To The Light) And The Sampled Texture Value (The
+		// Normalized Normal Vector Of Our Bump Map).
+		glActiveTexture(GL_TEXTURE1);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, bumpMap);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+		glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_DOT3_RGB) ;
+		glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS) ;
+		glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE) ;
+
+		// Set The Third Texture Unit To Our Tefsxture.
+		// Set The Texture Environment Of The Third Texture Unit To Modulate
+		// (Multiply) The Result Of Our Dot3 Operation With The Texture Value.
+		glActiveTexture(GL_TEXTURE2);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		
+		
+		//glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
+
+		
+
+	double vertex_to_light_x, vertex_to_light_y, vertex_to_light_z;
+	vertex_to_light_z = lightPos[2] - zMax;
 	glBegin(mode);
-	 	glTexCoord2f(0.0f, 0.0f);
+		Vector3D temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMax);
+		temp.normalize();
+		std::cout << temp << "\n";
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
-		glTexCoord2f(1.0f, 0.0f);
+		
+		temp = lightPos - Point3D(innerXMax + x, innerYMin + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
-		glTexCoord2f(1.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 1.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 1.0);
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
-		glTexCoord2f(0.0f, 1.0f);	
+
+		
+		temp = lightPos - Point3D(innerXMax + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 1.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 1.0);
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
-	
+
 	// top face
-	glNormal3d(0, 1, 0);
 	
 	glBegin(mode);
-	 	glTexCoord2f(0.0f, 0.0f);
+		temp = lightPos - Point3D(innerXMin + x, innerYMax + y, zMin);
+		temp.normalize();
+		vertex_to_light_x = lightPos[0] - (innerXMin + x);
+		vertex_to_light_y = lightPos[1] - (innerYMax + y);
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
-		glTexCoord2f(1.0f, 0.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMax + y, zMin);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
-		glTexCoord2f(1.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
-		glTexCoord2f(0.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMin + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
 	
 	// left face
-	glNormal3d(0, 0, 1);
 
 	glBegin(mode);
-		glTexCoord2f(0.0f, 0.0f);
+		temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMin);
+		temp.normalize();
+		vertex_to_light_x = lightPos[0] - (innerXMin + x);
+		vertex_to_light_y = lightPos[1] - (innerYMin + y);
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 0.0f);
+
+		temp = lightPos - Point3D(innerXMin + x, innerYMax + y, zMin);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
-		glTexCoord2f(1.0f, 1.0f);
+		
+		temp = lightPos - Point3D(innerXMin + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
-		glTexCoord2f(0.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// bottom face
-	glNormal3d(0, 1, 0);
+
 
 	glBegin(mode);
-		glTexCoord2f(0.0f, 0.0f);
+		temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMin);
+		temp.normalize();
+		vertex_to_light_x = lightPos[0] - (innerXMin + x);
+		vertex_to_light_y = lightPos[1] - (innerYMin + y);
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 0.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMin + y, zMin);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMin + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
-		glTexCoord2f(0.0f, 1.0f);
+
+		temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// right face
-	glNormal3d(0, 0, 1);
+
 	
 	glBegin(mode);
-		glTexCoord2f(0.0f, 0.0f);
+		temp = lightPos - Point3D(innerXMax + x, innerYMin + y, zMax);
+		temp.normalize();
+		vertex_to_light_x = lightPos[0] - (innerXMax + x);
+		vertex_to_light_y = lightPos[1] - (innerYMin + y);
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 0.0f);
+
+		temp = lightPos - Point3D(innerXMax + x, innerYMax + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
-		glTexCoord2f(1.0f, 1.0f);
+
 		glVertex3d(innerXMax + x, innerYMax + y, zMax);
-		glTexCoord2f(0.0f, 1.0f);
+
 		glVertex3d(innerXMax + x, innerYMin + y, zMax);
 	glEnd();
 	
 	// Back of front face
-	glNormal3d(1, 0, 0);
+
 
 	glBegin(mode);
-		glTexCoord2f(0.0f, 0.0f);
+		temp = lightPos - Point3D(innerXMin + x, innerYMin + y, zMax);
+		temp.normalize();
+		vertex_to_light_x = lightPos[0] - (innerXMin + x);
+		vertex_to_light_y = lightPos[1] - (innerYMin + y);
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 0.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 0.0, 0.0);
 		glVertex3d(innerXMin + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 0.0f);
+
+		vertex_to_light_x = lightPos[0] - (innerXMax + x);
+		vertex_to_light_y = lightPos[1] - (innerYMin + y);
+		temp = lightPos - Point3D(innerXMax + x, innerYMin + y, zMax);
+		temp.normalize();
+		glMultiTexCoord3d(GL_TEXTURE0, temp[0], temp[1], temp[2]);
+		glMultiTexCoord2d(GL_TEXTURE1, 1.0, 0.0);
+		glMultiTexCoord2d(GL_TEXTURE2, 1.0, 0.0);
 		glVertex3d(innerXMax + x, innerYMin + y, zMin);
-		glTexCoord2f(1.0f, 1.0f);	
+
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
-		glTexCoord2f(0.0f, 1.0f);
+
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
 	glEnd();
+glDisable(GL_BLEND);
 }
 
 
@@ -745,6 +1125,12 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	if (gameOver)
 		return true;
 	
+	if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
+		sm.PlaySound(moveSound);
+	else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
+		sm.PlaySound(turnSound);
+		
+		
 	if (ev->keyval == GDK_Left)
 		game->moveLeft();
 	else if (ev->keyval == GDK_Right)
@@ -1030,7 +1416,7 @@ int Viewer::ImageLoad(char *filename, Image *image) {
 }
     
 // Load Bitmaps And Convert To Textures
-void  Viewer::LoadGLTextures(char *filename) {	
+int  Viewer::LoadGLTextures(char *filename, GLuint &texid) {	
     // Load Texture
     Image *image1;
     
@@ -1044,9 +1430,10 @@ void  Viewer::LoadGLTextures(char *filename) {
     if (!ImageLoad(filename, image1)) {
 	exit(1);
     }        
-
+	
     // Create Texture	
-    glBindTexture(GL_TEXTURE_2D, texture[numTextures]);   // 2d texture (x and y size)
+	glGenTextures(1, &texid);
+    glBindTexture(GL_TEXTURE_2D, texid);   // 2d texture (x and y size)
 
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); // scale linearly when image bigger than texture
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); // scale linearly when image smalled than texture
@@ -1056,12 +1443,162 @@ void  Viewer::LoadGLTextures(char *filename) {
     glTexImage2D(GL_TEXTURE_2D, 0, 3, image1->sizeX, image1->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, image1->data);
 
 	numTextures++;
+	return (numTextures-1);
 }
 
 void Viewer::toggleTexture()
 {
 	loadTexture = !loadTexture;
-	
-	if (!loadTexture)
-		glDisable(GL_TEXTURE_2D);
+
+//	if (!loadTexture)
+//		glDisable(GL_TEXTURE_2D);		
+}
+
+void Viewer::toggleBumpMapping()
+{
+//	loadBumpMapping = !loadBumpMapping;
+	transluceny = !transluceny;
+}
+
+int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
+{
+	glGenTextures(1, &texid);
+	std::cerr << texid << "\n";
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texid);
+
+	unsigned char* data = new unsigned char[size*size*3];
+
+	float offset = 0.5f;
+	float halfSize = size * 0.5f;
+	Vector3D temp;
+	unsigned int bytePtr = 0;
+
+	for(unsigned int j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = halfSize;
+			temp[1] = (j+offset-halfSize);
+			temp[2] = -(i+offset-halfSize);
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	bytePtr = 0;
+	for(unsigned int  j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = -halfSize;
+			temp[1] = (j+offset-halfSize);
+			temp[2] = (i+offset-halfSize);
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	bytePtr = 0;
+	for(unsigned int  j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = i+offset-halfSize;
+			temp[1] = -halfSize;
+			temp[2] = j+offset-halfSize;
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	bytePtr = 0;
+	for(unsigned int  j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = i+offset-halfSize;
+			temp[1] = halfSize;
+			temp[2] = -(j+offset-halfSize);
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	bytePtr = 0;
+	for(unsigned int j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = i+offset-halfSize;
+			temp[1] = (j+offset-halfSize);
+			temp[2] = halfSize;
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	bytePtr = 0;
+	for(unsigned int j=0; j<size; j++)
+	{
+		for(unsigned int i=0; i<size; i++)
+		{
+			temp[0] = -(i+offset-halfSize);
+			temp[1] = (j+offset-halfSize);
+			temp[2] = -halfSize;
+			temp.normalize();
+
+			data[bytePtr] = (unsigned char)(temp[0] * 255.0f);
+			data[bytePtr+1] = (unsigned char)(temp[1] * 255.0f);
+			data[bytePtr+2] = (unsigned char)(temp[2] * 255.0f);
+
+			bytePtr+=3;
+		}
+	}
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	delete [] data;
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return true;
 }

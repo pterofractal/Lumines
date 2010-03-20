@@ -28,6 +28,7 @@ AppWindow::AppWindow()
 	m_menu_drawMode.items().push_back(MenuElem("_Wire-Frame", Gtk::AccelKey("w"), sigc::bind( draw_slot, Viewer::WIRE ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Face", Gtk::AccelKey("f"), sigc::bind( draw_slot, Viewer::FACE ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Texture 1", Gtk::AccelKey("t"), sigc::mem_fun(m_viewer, &Viewer::toggleTexture ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping 1", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
 
 	m_menu_speed.items().push_back(RadioMenuElem(m_group_speed, "_Slow", sigc::bind( speed_slot, Viewer::SLOW ) ) );
 	m_menu_speed.items().push_back(RadioMenuElem(m_group_speed, "_Medium", sigc::bind( speed_slot, Viewer::MEDIUM ) ) );

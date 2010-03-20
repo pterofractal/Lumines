@@ -5,6 +5,7 @@
 #include <gtkmm.h>
 #include <gtkglmm.h>
 #include "game.hpp"
+#include "SoundManager.hpp"
 
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
@@ -47,6 +48,7 @@ public:
 	void resetView();
 	void newGame();
 	void toggleTexture();
+	void toggleBumpMapping();
 	
 	void makeRasterFont();
 	void printString(const char *s);
@@ -54,10 +56,13 @@ public:
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
 	bool moveClearBar();
 	void draw_start_screen(bool picking);
-	
+
+
+
+	// Texture mapping stuff	
 	/* storage for one texture  */
 	int numTextures;
-	GLuint texture[5];
+	GLuint *texture;
 
 	/* Image type - contains height, width, and data */
 	struct Image {
@@ -68,8 +73,48 @@ public:
 	typedef struct Image Image;
 	
 	int ImageLoad(char *filename, Image *image);
-	void LoadGLTextures(char *filename);
+	int LoadGLTextures(char *filename, GLuint &texid);
 	
+	Point3D lightPos;
+	GLuint normalization_cube_map, bumpMap, floorTexId;
+	int GenNormalizationCubeMap(unsigned int size, GLuint &texid);
+	// Bump mapping stuff
+/*	bool SetUpARB_multitexture()
+	{
+		char * extensionString=(char *)glGetString(GL_EXTENSIONS);
+	    char * extensionName="GL_ARB_multitexture";
+
+	    char * endOfString; //store pointer to end of string
+	    unsigned int distanceToSpace; //distance to next space
+
+	    endOfString=extensionString+strlen(extensionString);
+
+	    //loop through string
+	    while(extensionString<endOfString)
+	    {
+	        //find distance to next space
+	        distanceToSpace=strcspn(extensionString, " ");
+
+	        //see if we have found extensionName
+	        if((strlen(extensionName)==distanceToSpace) &&
+	        (strncmp(extensionName, extensionString, distanceToSpace)==0))
+	        {
+	            ARB_multitexture_supported=true;
+	        }
+
+	        //if not, move on
+	        extensionString+=distanceToSpace+1;
+	    }
+	
+	    if(!ARB_multitexture_supported)
+	    {
+	        printf("ARB_multitexture unsupported!\n");
+	        return false;
+	    }
+
+	    printf("ARB_multitexture supported!\n");
+	}
+	*/
 protected:
 
 	// Events we implement
@@ -96,7 +141,7 @@ protected:
 private:
 
 	void drawCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
-	
+	void drawBumpCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
 	DrawMode currentDrawMode;
 	
 	// The angle at which we are currently rotated
@@ -159,6 +204,14 @@ private:
 	int activeTextureId;
 	
 	bool loadTexture;
+	bool loadBumpMapping;
+	bool transluceny;
+	SoundManager sm;
+	int backgroundMusic;
+	int turnSound;
+	int moveSound;
+//	int backgroundSoundIndex;
+//	int backgroundSoundBuf;
 };
 
 #endif
