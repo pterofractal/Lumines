@@ -19,8 +19,7 @@
 #define OBLOCKCOL 2
 #define XCLEARBLOCKCOL 3
 #define OCLEARBLOCKCOL 4
-
-int counter = 0;
+#define COUNTER_SPACE 16
 int lastClearedRow = -1;
 static const Piece PIECES[] = {
   Piece(
@@ -166,7 +165,7 @@ Game::Game(int width, int height)
 	, score_(0)
 {
   int sz = board_width_ * (board_height_+4);
-
+counter=0;
   board_ = new int[ sz ];
   std::fill(board_, board_ + sz, -1);
   generateNewPiece();
@@ -312,7 +311,6 @@ void Game::placePiece(const Piece& p, int x, int y)
       }
     }
   }
-//dropShadowPiece();
 }
 	
 void Game::generateNewPiece() 
@@ -342,7 +340,7 @@ int Game::tick()
 	markBlocksForClearing();
 	collapse();
 	moveClearBar();
-	if (counter < 10)
+	if (counter < COUNTER_SPACE)
 	{
 		counter++;
 		placePiece(piece_, px_, py_);
@@ -385,10 +383,12 @@ int Game::tick()
 				++ny;
 			  	placePiece(piece_, px_, ny);*/						
 				dropPiece(0);
+				counter = COUNTER_SPACE;
 			}
 			else if(get(ny-2, px_+1) == -1 && get(ny-2, px_+2) != -1)  
 			{
 				dropPiece(1);
+								counter = COUNTER_SPACE;
 			}
 	    	int rm = 0;
 /*			int level = 1 + linesCleared_ / 10;
@@ -418,6 +418,7 @@ int Game::tick()
 	else 
 	{
 		placePiece(piece_, px_, ny);
+		sy_ = py_;
 		py_ = ny;
 		return 0;
 	}
@@ -456,7 +457,8 @@ bool Game::moveLeft()
   removePiece(piece_, px_, py_);
   if(doesPieceFit(piece_, nx, py_)) {
     placePiece(piece_, nx, py_);
-    px_ = nx;
+    sx_ = px_;
+	px_ = nx;
     return true;
   } else {
     placePiece(piece_, px_, py_);
@@ -471,7 +473,8 @@ bool Game::moveRight()
   removePiece(piece_, px_, py_);
   if(doesPieceFit(piece_, nx, py_)) {
     placePiece(piece_, nx, py_);
-    px_ = nx;
+    sx_ = px_;
+	px_ = nx;
     return true;
   } else {
     placePiece(piece_, px_, py_);
@@ -503,6 +506,7 @@ bool Game::drop()
   	}
 	else 
 	{
+		sy_ = py_;
     	py_ = ny;
 		return true;
   	}
@@ -511,7 +515,6 @@ bool Game::drop()
 bool Game::rotateCW() 
 {
 	removePiece(piece_, px_, py_);
-	//removePiece(shadowPiece_, sx_, sy_);
 	Piece npiece = piece_.rotateCW();
 
 	if(doesPieceFit(npiece, px_, py_)) 
@@ -531,7 +534,6 @@ bool Game::rotateCW()
 bool Game::rotateCCW() 
 {
 	removePiece(piece_, px_, py_);
-//	removePiece(shadowPiece_, sx_, sy_);
 	Piece npiece = piece_.rotateCCW();
 	if(doesPieceFit(npiece, px_, py_)) 
 	{
@@ -547,34 +549,7 @@ bool Game::rotateCCW()
 	}
 }
 
-void Game::dropShadowPiece()
-{
-	removePiece(shadowPiece_, sx_, sy_);
-	int ny = sy_;
-	sx_ = px_;
-	while(true) 
-	{
-		--ny;
-		if(!doesPieceFit(shadowPiece_, sx_, ny))
-		  break;
-	}
-
-	++ny;
-
-	for(int r = 0; r < 4; ++r) 
-	{
-		for(int c = 0; c < 4; ++c) 
-		{
-			if(shadowPiece_.isOn(r, c))
-				get(ny-r, sx_+c) = shadowPiece_.getColourIndex(r, c);
-		}
-	}
-
-	if(ny != sy_)
-	  sy_ = ny;
-}
-
-void Game::moveClearBar()
+bool Game::moveClearBar()
 {
 	if (clearBarPos > board_width_)
 	{

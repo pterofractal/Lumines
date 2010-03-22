@@ -35,7 +35,6 @@ public:
 	Piece rotateCCW() const;
 
 	bool isOn(int row, int col) const;
-	
 	int margins_[4];
 	void removeHalf(int side)
 	{
@@ -51,7 +50,7 @@ public:
 			desc_[ 2*4 + 2 ] = '.';
 		}
 	}
-
+	
 private:
   void getColumn(int col, char *buf) const;
   void getColumnRev(int col, char *buf) const;
@@ -136,9 +135,12 @@ void dropShadowPiece();
 		return clearBarPos;
 	}
 	
-	void moveClearBar();
+	bool moveClearBar();
 	void pullDown(int x, int y);
-	
+			int sx_, sy_;
+			int px_;
+			int py_;
+			int counter;
 private:
 	bool doesPieceFit(const Piece& p, int x, int y) const;
 
@@ -162,11 +164,10 @@ private:
 
 	Piece piece_;
 	Piece shadowPiece_;
-	int px_, sx_;
-	int py_, sy_;
+
 
 	int* board_;
-
+	
 	// Extra stuff
 	int score_, linesCleared_;
 	double clearBarPos;

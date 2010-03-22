@@ -6,7 +6,8 @@
 #include <gtkglmm.h>
 #include "game.hpp"
 #include "SoundManager.hpp"
-
+#include <map>
+#include <vector>
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
 public:
@@ -55,8 +56,7 @@ public:
 	
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
 	bool moveClearBar();
-	void draw_start_screen(bool picking);
-
+	void pauseGame();
 
 
 	// Texture mapping stuff	
@@ -75,8 +75,6 @@ public:
 	int ImageLoad(char *filename, Image *image);
 	int LoadGLTextures(char *filename, GLuint &texid);
 	
-	Point3D lightPos;
-	GLuint normalization_cube_map, bumpMap, floorTexId;
 	int GenNormalizationCubeMap(unsigned int size, GLuint &texid);
 	// Bump mapping stuff
 /*	bool SetUpARB_multitexture()
@@ -139,8 +137,16 @@ protected:
 
 
 private:
-
-	void drawCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
+	void drawScene(int iter);
+	void drawBar();
+	void drawFallingBox();
+	void drawFloor();
+	void drawShadowVolumes();
+	void drawShadowCube(float y, float x, GLenum mode);
+	void drawRoom();
+	void drawStartScreen(bool picking, GLuint texId);
+		
+	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	void drawBumpCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
 	DrawMode currentDrawMode;
 	
@@ -210,8 +216,16 @@ private:
 	int backgroundMusic;
 	int turnSound;
 	int moveSound;
-//	int backgroundSoundIndex;
-//	int backgroundSoundBuf;
+	GLuint square;
+	float shadowProj[16];
+	float lightPos[4];
+	
+	float planeNormal[4];
+	bool drawingShadow;
+	GLuint normalization_cube_map, bumpMap, floorTexId, playButtonTex, playButtonClickedTex;
+	bool clickedButton;
+	std::vector< std::pair<Point3D, Point3D> > silhouette;
+
 };
 
 #endif

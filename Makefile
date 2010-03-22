@@ -1,8 +1,8 @@
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 DEPENDS = $(SOURCES:.cpp=.d)
-LDFLAGS = $(shell pkg-config --libs gtkmm-2.4 gtkglextmm-1.2 sdl) -lglut -lsdl_mixer
-CPPFLAGS = $(shell pkg-config --cflags gtkmm-2.4 gtkglextmm-1.2 sdl)
+LDFLAGS = $(shell pkg-config --libs gtkmm-2.4 gtkglextmm-1.2 sdl libpng) -lglut -lsdl_mixer
+CPPFLAGS = $(shell pkg-config --cflags gtkmm-2.4 gtkglextmm-1.2 sdl libpng)
 CXXFLAGS = $(CPPFLAGS) -W -Wall -g
 CXX = g++ -m32 
 MAIN = game488
