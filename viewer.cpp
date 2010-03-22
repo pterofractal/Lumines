@@ -130,6 +130,7 @@ void Viewer::on_realize()
 	LoadGLTextures("floor.bmp", floorTexId);
 	LoadGLTextures("playButton.bmp", playButtonTex);
 	LoadGLTextures("playButtonClicked.bmp", playButtonClickedTex);
+	GenNormalizationCubeMap(256, cube);
 	std::cout << "normal\t" << bumpMap << "\n";
 	
 	
@@ -139,8 +140,6 @@ void Viewer::on_realize()
 	turnSound = sm.LoadSound("turn.ogg");
 //	sm.PlaySound(backgroundMusic);
 
-
-	GenNormalizationCubeMap(256, normalization_cube_map);
 	// Just enable depth testing and set the background colour.
 	//	glEnable(GL_DEPTH_TEST);
 	
@@ -277,7 +276,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glTranslated(-5.0, -10.0, 10.0);
 	
 	// Create one light source
-/*	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -289,7 +288,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight0);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
-	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);*/
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 	
 	if (loadScreen)
 	{
@@ -774,23 +773,13 @@ void Viewer::drawScene(int itesdfr)
 		{
 			for (int j = WIDTH - 1; j>=0;j--) // column
 			{				
-				bool condition = i > 1	&&(	game->get(i - 2, j) == -1 && i == game->py_ - 1 && j == game->px_ + 1 
-										|| 	game->get(i - 2, j) == -1 && i == game->py_ - 1 && j == game->px_ + 2);
-				condition = condition || (i > 0 && game->get(i - 1, j) == -1 && i == game->py_ - 2 && j == game->px_ + 1 ||	game->get(i - 1, j) == -1 && i == game->py_ - 2 && j == game->px_ + 2);
-				/*if (condition)
-				{				
-					drawCube (i - game->counter * frac, j, game->get(i, j), GL_QUADS );
-				}
-				else*/ if(game->get(i, j) != -1)
+				if(loadBumpMapping && game->get(i, j) != -1)
+					drawBumpCube (i, j, game->get(i, j), GL_QUADS );
+				else if(game->get(i, j) != -1)
 					drawCube (i, j, game->get(i, j), GL_QUADS );
-
+					
 				// Draw outline for cube
-				/*if (game->get(i, j) != -1 && condition)
-				{
-				
-					drawCube(i - game->counter * frac, j, 7, GL_LINE_LOOP);
-				}
-				else */if (game->get(i, j) != -1)
+				if (game->get(i, j) != -1)
 					drawCube(i, j, 7, GL_LINE_LOOP);
 			}
 		}	
@@ -975,12 +964,19 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 		x2x1 = event->x - startPos[0];
 		x2x1 /= 10;
 		
-		if (mouseB1Down) // Rotate x
+/*		if (mouseB1Down) // Rotate x
 			rotationAngleX += x2x1;
 		if (mouseB2Down) // Rotate y
 			rotationAngleY += x2x1;
 		if (mouseB3Down) // Rotate z
-			rotationAngleZ += x2x1;
+			rotationAngleZ += x2x1;*/
+			
+		if (mouseB1Down) // Rotate x
+			lightPos[0] += x2x1;
+		if (mouseB2Down) // Rotate y
+			lightPos[1]  += x2x1;
+		if (mouseB3Down) // Rotate z
+			lightPos[2]  += x2x1;
 			
 		// Reset the tickTimer
 		if (!rotateTimer.connected())
@@ -994,6 +990,258 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 	return true;
 }
 
+void Viewer::drawBumpCube(float y, float x, int colourId, GLenum mode, bool multicolour)
+{
+	// Set The First Texture Unit To Normalize Our Vector From The Surface To The Light.
+	// Set The Texture Environment Of The First Texture Unit To Replace It With The
+	// Sampled Value Of The Normalization Cube Map.
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_TEXTURE_CUBE_MAP);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cube);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE) ;
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE) ;
+
+	// Set The Second Unit To The Bump Map.
+	// Set The Texture Environment Of The Second Texture Unit To Perform A Dot3
+	// Operation With The Value Of The Previous Texture Unit (The Normalized
+	// Vector Form The Surface To The Light) And The Sampled Texture Value (The
+	// Normalized Normal Vector Of Our Bump Map).
+	glActiveTexture(GL_TEXTURE1);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, bumpMap);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_DOT3_RGB) ;
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS) ;
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE) ;
+
+	// Set The Third Texture Unit To Our Texture.
+	// Set The Texture Environment Of The Third Texture Unit To Modulate
+	// (Multiply) The Result Of Our Dot3 Operation With The Texture Value.
+	glActiveTexture(GL_TEXTURE2);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+	// Now We Draw Our Object (Remember That We First Have To Calculate The
+	// (UnNormalized) Vector From Each Vertex To Our Light).
+//	std::cout << lightPos[0] << "\t" << lightPos[1] << "\t" << lightPos[2] <<"\n";
+	double innerXMin = 0;
+	double innerYMin = 0;
+	double innerXMax = 1;
+	double innerYMax = 1;
+	double zMax = 1;
+	double zMin = 0;
+	
+	Point3D vertex_position, light_position;
+	light_position[0] = lightPos[0];
+	light_position[1] = lightPos[1];
+	light_position[2] = lightPos[2];
+	Vector3D vertex_to_light;
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMax + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMax + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMax + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMax + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMin + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMin + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMax + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMax + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMax + x, innerYMax + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMax + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMax + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMax + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMax + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+	
+	glBegin(GL_QUADS);
+		// lower left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		vertex_position = Point3D(innerXMax + x, innerYMin + y, zMin);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 0.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 0.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+        vertex_position = Point3D(innerXMax + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 1.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 1.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+
+
+		// upper left Vertex
+		vertex_position = Point3D(innerXMin + x, innerYMin + y, zMax);
+		vertex_to_light = light_position - vertex_position;
+		glMultiTexCoord3f(GL_TEXTURE0, vertex_to_light[0], vertex_to_light[1], vertex_to_light[2]);
+		glMultiTexCoord2f(GL_TEXTURE1, 0.0f, 1.0f);
+		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
+		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
+	glEnd();
+}
 void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiColour)
 {
 	if (mode == GL_LINE_LOOP)
@@ -1480,32 +1728,10 @@ int  Viewer::LoadGLTextures(char *filename, GLuint &texid) {
 	return (numTextures-1);
 }
 
-void Viewer::toggleTexture()
-{
-	loadTexture = !loadTexture;
-
-//	if (!loadTexture)
-//		glDisable(GL_TEXTURE_2D);		
-}
-
-void Viewer::toggleBumpMapping()
-{
-//	loadBumpMapping = !loadBumpMapping;
-	transluceny = !transluceny;
-}
-
-void Viewer::pauseGame()
-{
-	if (tickTimer)
-		tickTimer.disconnect();
-	else
-		tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
-}
 
 int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 {
 	glGenTextures(1, &texid);
-	std::cerr << texid << "\n";
 	glBindTexture(GL_TEXTURE_CUBE_MAP, texid);
 
 	unsigned char* data = new unsigned char[size*size*3];
@@ -1535,7 +1761,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(unsigned int  j=0; j<size; j++)
+	for(int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -1555,7 +1781,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(unsigned int  j=0; j<size; j++)
+	for(int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -1575,7 +1801,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(unsigned int  j=0; j<size; j++)
+	for(int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -1595,7 +1821,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(unsigned int j=0; j<size; j++)
+	for(int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -1643,4 +1869,30 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return true;
+}
+
+void Viewer::toggleTexture()
+{
+	loadTexture = !loadTexture;
+
+//	if (!loadTexture)
+//		glDisable(GL_TEXTURE_2D);		
+}
+
+void Viewer::toggleBumpMapping()
+{
+	loadBumpMapping = !loadBumpMapping;	
+}
+
+void Viewer::toggleTranslucency()
+{
+	transluceny = !transluceny;
+}
+
+void Viewer::pauseGame()
+{
+	if (tickTimer)
+		tickTimer.disconnect();
+	else
+		tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
 }

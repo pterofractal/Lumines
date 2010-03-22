@@ -14,7 +14,6 @@ AppWindow::AppWindow()
 
 	// Slots to connect to functions
 	sigc::slot1<void, Viewer::DrawMode> draw_slot = sigc::mem_fun(m_viewer, &Viewer::setDrawMode);
-	sigc::slot1<void, Viewer::Speed> speed_slot = sigc::mem_fun(m_viewer, &Viewer::setSpeed);
 	sigc::slot0<void> buffer_slot = sigc::mem_fun(m_viewer, &Viewer::toggleBuffer);
 
 	// Set up the application menu
@@ -29,17 +28,13 @@ AppWindow::AppWindow()
 	m_menu_drawMode.items().push_back(MenuElem("_Face", Gtk::AccelKey("f"), sigc::bind( draw_slot, Viewer::FACE ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Texture 1", Gtk::AccelKey("t"), sigc::mem_fun(m_viewer, &Viewer::toggleTexture ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping 1", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
-
-	m_menu_speed.items().push_back(RadioMenuElem(m_group_speed, "_Slow", sigc::bind( speed_slot, Viewer::SLOW ) ) );
-	m_menu_speed.items().push_back(RadioMenuElem(m_group_speed, "_Medium", sigc::bind( speed_slot, Viewer::MEDIUM ) ) );
-	m_menu_speed.items().push_back(RadioMenuElem(m_group_speed, "_Fast", sigc::bind( speed_slot, Viewer::FAST ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Translucency", Gtk::AccelKey("u"), sigc::mem_fun(m_viewer, &Viewer::toggleTranslucency ) ) );
 
 	m_menu_buffer.items().push_back(CheckMenuElem("_Double Buffer", Gtk::AccelKey("b"), buffer_slot ));
 	
 	// Set up the menu bar
 	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_File", m_menu_app));
 	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Draw Mode", m_menu_drawMode));
-	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Speed", m_menu_speed));
 	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Buffer", m_menu_buffer));	
 	
 	// Set up the score label	

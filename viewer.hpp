@@ -51,7 +51,7 @@ public:
 	void newGame();
 	void toggleTexture();
 	void toggleBumpMapping();
-	
+	void toggleTranslucency();
 	void makeRasterFont();
 	void printString(const char *s);
 	
@@ -77,45 +77,10 @@ public:
 	
 	int ImageLoad(char *filename, Image *image);
 	int LoadGLTextures(char *filename, GLuint &texid);
-	
+
+	// Bump mapping stuff	
 	int GenNormalizationCubeMap(unsigned int size, GLuint &texid);
-	// Bump mapping stuff
-/*	bool SetUpARB_multitexture()
-	{
-		char * extensionString=(char *)glGetString(GL_EXTENSIONS);
-	    char * extensionName="GL_ARB_multitexture";
 
-	    char * endOfString; //store pointer to end of string
-	    unsigned int distanceToSpace; //distance to next space
-
-	    endOfString=extensionString+strlen(extensionString);
-
-	    //loop through string
-	    while(extensionString<endOfString)
-	    {
-	        //find distance to next space
-	        distanceToSpace=strcspn(extensionString, " ");
-
-	        //see if we have found extensionName
-	        if((strlen(extensionName)==distanceToSpace) &&
-	        (strncmp(extensionName, extensionString, distanceToSpace)==0))
-	        {
-	            ARB_multitexture_supported=true;
-	        }
-
-	        //if not, move on
-	        extensionString+=distanceToSpace+1;
-	    }
-	
-	    if(!ARB_multitexture_supported)
-	    {
-	        printf("ARB_multitexture unsupported!\n");
-	        return false;
-	    }
-
-	    printf("ARB_multitexture supported!\n");
-	}
-	*/
 protected:
 
 	// Events we implement
@@ -151,7 +116,7 @@ private:
 	void drawParticles();
 	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
-	void drawBumpCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
+	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	DrawMode currentDrawMode;
 	
 	// The angle at which we are currently rotated
@@ -226,7 +191,7 @@ private:
 	
 	float planeNormal[4];
 	bool drawingShadow;
-	GLuint normalization_cube_map, bumpMap, floorTexId, playButtonTex, playButtonClickedTex;
+	GLuint cube, bumpMap, floorTexId, playButtonTex, playButtonClickedTex;
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
 	std::vector< Particle *> particles;
