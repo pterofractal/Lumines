@@ -285,7 +285,12 @@ int Game::collapse()
 		if (get(r, c) == XCLEARBLOCKCOL || get(r, c) == OCLEARBLOCKCOL )
 		{
 			// Collapse
+			ClearedBlock clr;
+			clr.r = r;
+			clr.c = c;
+			clr.col = get(r, c);
 			get(r, c) = -1;
+			blocksJustCleared.push_back(clr);
 			pullDown(r, c);
 			lastClearedRow = c;
 		}

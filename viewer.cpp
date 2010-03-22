@@ -395,8 +395,8 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 //	silhouette.clear();
 
 //	drawRoom();
-	
 	drawScene(0);
+		drawParticles();	
 	drawBar();
 	
 	/*
@@ -435,6 +435,75 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	gldrawable->gl_end();
 
 	return true;
+}
+
+void Viewer::drawParticles()
+{
+	for (int i = 0;i<game->blocksJustCleared.size();i++)
+	{
+		addParticleBox(game->blocksJustCleared[i].c, game->blocksJustCleared[i].r, game->blocksJustCleared[i].col);
+	}
+	game->blocksJustCleared.clear();
+	glEnable(GL_BLEND);
+	float mag;
+	Point3D pos;
+	float rad;
+	Vector3D velocity;
+	Point3D col;
+	float alpha;
+	for (int i = 0;i<particles.size();i++)
+	{
+		pos = particles[i]->getPos();
+		rad = particles[i]->getRadius();
+		alpha = particles[i]->getAlpha();
+		mag = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
+		mag = (1.f/mag);
+		
+		glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA);
+		glColor4f(mag * pos[0], mag * pos[1], mag * pos[2], alpha);
+		glPushMatrix();
+			glTranslatef(pos[0], pos[1], pos[2]);
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, texture[particles[i]->getColour() - 1]);
+			glBegin(GL_QUADS);
+				glTexCoord2f(0.0f, 0.0f);
+				glVertex3d(0, 0, 1);
+				glTexCoord2f(1.0f, 0.0f);
+				glVertex3d(rad, 0, 1);
+				glTexCoord2f(1.0f, 1.0f);
+				glVertex3d(rad, rad, 1);
+				glTexCoord2f(0.0f, 1.0f);
+				glVertex3d(0, rad, 1);
+			glEnd();
+		glPopMatrix();		
+		
+		if (particles[i]->step(0.1))
+		{
+			particles.erase(particles.begin() + i);
+		}
+	}
+	glDisable(GL_BLEND);
+}
+void Viewer::addParticleBox(float x, float y, int colour)
+{
+	Point3D pos(x, y, 0);
+	float radius = 0.2f;
+	float decay = 2.f;
+	Vector3D vel(-1, -1, 0);
+	for (int i = 0;i<5;i++)
+	{
+		for (int j = 0;j<5;j++)
+		{
+			particles.push_back(new Particle(pos, radius, vel, decay, colour));			
+			pos[0] = pos[0] + 0.2;
+			vel[0] = vel[0] + 0.4;
+		}
+		pos[0] = x;
+		pos[1] = pos[1] + 0.2;
+		
+		vel[0] = -1;
+		vel[1] = vel[1]  + 0.4;
+	}
 }
 
 void Viewer::drawRoom()							// Draw The Room (Box)

@@ -16,6 +16,7 @@
 #define CS488_GAME_HPP
 
 #include <iostream>
+#include <vector>
 
 class Piece {
 public:
@@ -141,6 +142,10 @@ void dropShadowPiece();
 			int px_;
 			int py_;
 			int counter;
+			struct ClearedBlock {
+				int r, c, col;
+			};
+			std::vector<ClearedBlock > blocksJustCleared;
 private:
 	bool doesPieceFit(const Piece& p, int x, int y) const;
 
@@ -167,7 +172,7 @@ private:
 
 
 	int* board_;
-	
+
 	// Extra stuff
 	int score_, linesCleared_;
 	double clearBarPos;

@@ -8,6 +8,7 @@
 #include "SoundManager.hpp"
 #include <map>
 #include <vector>
+#include "particle.hpp"
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
 public:
@@ -57,6 +58,8 @@ public:
 	void setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared);
 	bool moveClearBar();
 	void pauseGame();
+	void addParticleBox(float x, float y, int colour);
+
 
 
 	// Texture mapping stuff	
@@ -145,7 +148,8 @@ private:
 	void drawShadowCube(float y, float x, GLenum mode);
 	void drawRoom();
 	void drawStartScreen(bool picking, GLuint texId);
-		
+	void drawParticles();
+	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	void drawBumpCube(int y, int x, int colourId, GLenum mode, bool multiColour = false);
 	DrawMode currentDrawMode;
@@ -225,7 +229,7 @@ private:
 	GLuint normalization_cube_map, bumpMap, floorTexId, playButtonTex, playButtonClickedTex;
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
-
+	std::vector< Particle *> particles;
 };
 
 #endif
