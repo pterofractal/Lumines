@@ -203,7 +203,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		
 			
 	// Clear the screen
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_ACCUM_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	// Modify the current projection matrix so that we move the 
 	// camera away from the origin.  We'll draw the game at the
@@ -277,7 +277,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glTranslated(-5.0, -10.0, 10.0);
 	
 	// Create one light source
-	glEnable(GL_LIGHTING);
+/*	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -289,7 +289,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight0);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
-	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);*/
 	
 	if (loadScreen)
 	{
@@ -396,29 +396,28 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 //	drawRoom();
 	
-	//drawScene(0);
+	drawScene(0);
 	drawBar();
 	
-	if (game->counter == 15)
+	/*
+	Semi-broken motion blur. need to figure out why the screen gets so dim and why it is so slow
+	if (game->counter == 0)
 	{
+		pauseGame();
 		drawScene(0);
-		drawFallingBox();		
-	
+		glClear(GL_ACCUM_BUFFER_BIT);
+		drawFallingBox();
 		glAccum(GL_RETURN, 1.f);
+
+		pauseGame();
 	}
 	else
+	{
 		drawScene(0);
-	
+	}
+	*/
+		
 
-/*			for (int i = 16;i>=1;i--)
-			{
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			//	drawBar(i);
-				drawScene(i);
-				glAccum(GL_ACCUM, 1.f/16);
-			}
-			glAccum(GL_RETURN, 1.f);	*/
-	
 		
  	// We pushed a matrix onto the PROJECTION stack earlier, we 
 	// need to pop it.
@@ -644,19 +643,21 @@ void Viewer::drawFallingBox()
 	float iterFrac = 1.f/iter;
 	for (int i = 0;i<iter;i++)
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		drawCube (game->py_ - 1 + i * iterFrac, game->px_ + 1, game->get(game->py_ - 1, game->px_ + 1), GL_QUADS );
-		drawCube (game->py_ - 1 + i * iterFrac, game->px_ + 2, game->get(game->py_ - 1, game->px_ + 2), GL_QUADS );
-		drawCube (game->py_ - 2 + i * iterFrac, game->px_ + 1, game->get(game->py_ - 1, game->px_ + 1), GL_QUADS );
-		drawCube (game->py_ - 2 + i * iterFrac, game->px_ + 2, game->get(game->py_ - 1, game->px_ + 2), GL_QUADS );
-                                         
-		drawCube (game->py_ - 1 + i * iterFrac, game->px_ + 1, 7, GL_LINE_LOOP );
-		drawCube (game->py_ - 1 + i * iterFrac, game->px_ + 2, 7, GL_LINE_LOOP );
-		drawCube (game->py_ - 2 + i * iterFrac, game->px_ + 1, 7, GL_LINE_LOOP );
-		drawCube (game->py_ - 2 + i * iterFrac, game->px_ + 2, 7, GL_LINE_LOOP );
+	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glPushMatrix();
+	    	glTranslatef(0, i * iterFrac, 0);
+			drawCube (game->py_ - 1, game->px_ + 1, game->get(game->py_ - 1, game->px_ + 1), GL_QUADS );
+			drawCube (game->py_ - 1, game->px_ + 2, game->get(game->py_ - 1, game->px_ + 2), GL_QUADS );
+			drawCube (game->py_ - 2, game->px_ + 1, game->get(game->py_ - 1, game->px_ + 1), GL_QUADS );
+			drawCube (game->py_ - 2, game->px_ + 2, game->get(game->py_ - 1, game->px_ + 2), GL_QUADS );
+
+			drawCube (game->py_ - 1, game->px_ + 1, 7, GL_LINE_LOOP );
+			drawCube (game->py_ - 1, game->px_ + 2, 7, GL_LINE_LOOP );
+			drawCube (game->py_ - 2, game->px_ + 1, 7, GL_LINE_LOOP );
+			drawCube (game->py_ - 2, game->px_ + 2, 7, GL_LINE_LOOP );
+	    glPopMatrix();
 		glAccum(GL_ACCUM, iterFrac);
 	}
-
 }
 
 void Viewer::drawFloor()
@@ -1426,7 +1427,10 @@ void Viewer::toggleBumpMapping()
 
 void Viewer::pauseGame()
 {
+	if (tickTimer)
 		tickTimer.disconnect();
+	else
+		tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
 }
 
 int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
