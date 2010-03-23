@@ -15,6 +15,7 @@
 #include <algorithm>
 
 #include "game.hpp"
+#include "viewer.hpp"
 #define XBLOCKCOL 1
 #define OBLOCKCOL 2
 #define XCLEARBLOCKCOL 3
@@ -282,15 +283,16 @@ int Game::collapse()
 		
 	for (int r = board_height_ + 2; r>= 0; --r)
 	{					
-		if (get(r, c) == XCLEARBLOCKCOL || get(r, c) == OCLEARBLOCKCOL )
+		if ((get(r, c) == XCLEARBLOCKCOL || get(r, c) == OCLEARBLOCKCOL ) && r != py_)
 		{
 			// Collapse
 			ClearedBlock clr;
 			clr.r = r;
 			clr.c = c;
 			clr.col = get(r, c);
-			get(r, c) = -1;
+			//viewer->addParticleBox(c, r, get(r,c)); 
 			blocksJustCleared.push_back(clr);
+			get(r, c) = -1;
 			pullDown(r, c);
 			lastClearedRow = c;
 		}
@@ -370,52 +372,17 @@ int Game::tick()
 			// break piece and keep moving down if need be
 
 			// The right side can drop more
-				if(get(ny-2, px_+1) != -1 && get(ny-2, px_+2) == -1)  
-			{						
-			/*	Piece temp = piece_;
-				temp.removeHalf(1);
-				removePiece(piece_, px_, py_);
-			  	placePiece(temp, px_, py_);
-				while(true) 
-				{
-					if(get(ny-2, px_+2) != -1) 
-					{
-			      		break;
-			    	}
-					--ny;
-			  	}
-				piece_.removeHalf(0);
-				++ny;
-			  	placePiece(piece_, px_, ny);*/						
+			if(get(ny-2, px_+1) != -1 && get(ny-2, px_+2) == -1)  
+			{												
 				dropPiece(0);
 				counter = COUNTER_SPACE;
 			}
 			else if(get(ny-2, px_+1) == -1 && get(ny-2, px_+2) != -1)  
 			{
 				dropPiece(1);
-								counter = COUNTER_SPACE;
+				counter = COUNTER_SPACE;
 			}
 	    	int rm = 0;
-/*			int level = 1 + linesCleared_ / 10;
-			switch (rm)
-			{
-				case 0:
-					score_ += 10 * level;
-					break;
-				case 1:
-					score_ += rm * 100 * level;
-					break;
-				case 2:
-				 	score_ += rm * 300 * level;
-					break;
-				case 3:
-				 	score_ += rm * 500 * level;
-					break;
-				case 4:
-				 	score_ += rm * 800 * level;
-					break;
-			}
-			linesCleared_ += rm;*/
 	    	generateNewPiece();
 	    	return rm;
 		}
@@ -503,8 +470,7 @@ bool Game::drop()
   	}
 
 	++ny;
-  	placePiece(piece_, px_, ny);
-
+  //	placePiece(piece_, px_, ny);
 	if(ny == py_) 
 	{
     	return false;
@@ -513,6 +479,8 @@ bool Game::drop()
 	{
 		sy_ = py_;
     	py_ = ny;
+		counter = 16;
+		tick();
 		return true;
   	}
 }
@@ -558,9 +526,9 @@ bool Game::moveClearBar()
 {
 	if (clearBarPos > board_width_)
 	{
+		lastClearedRow = board_width_;
 		clearBarPos = 0;
 	}
 	clearBarPos += 0.2;
-//	collapse();
 }
 

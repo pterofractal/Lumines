@@ -50,11 +50,11 @@ Viewer::Viewer()
 	
 	gameOver = false;
 	numTextures = 0;
-	lightPos[0] = 8.0f;
-	lightPos[1] = 15.0f;
-	lightPos[2] = 5.0f;
+	lightPos[0] = 4.6f;
+	lightPos[1] = 6.79998f;
+	lightPos[2] = 62.6f;
 	lightPos[3] = 1.0f;
-	
+
 	
 	Glib::RefPtr<Gdk::GL::Config> glconfig;
 	
@@ -66,7 +66,8 @@ Viewer::Viewer()
 	glconfig = Gdk::GL::Config::create(	Gdk::GL::MODE_RGB |
 										Gdk::GL::MODE_DEPTH |
 										Gdk::GL::MODE_DOUBLE |
-										Gdk::GL::MODE_ACCUM);
+										Gdk::GL::MODE_ACCUM |
+										Gdk::GL::MODE_STENCIL);
 	if (glconfig == 0) {
 	  // If we can't get this configuration, die
 	  abort();
@@ -86,7 +87,7 @@ Viewer::Viewer()
 		
 	// Create Game
 	game = new Game(WIDTH, HEIGHT);
-	
+	game->setViewer(this);
 	// Start game tick timer
 	tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
 //	clearBarTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::moveClearBar), 50);
@@ -131,7 +132,6 @@ void Viewer::on_realize()
 	LoadGLTextures("playButton.bmp", playButtonTex);
 	LoadGLTextures("playButtonClicked.bmp", playButtonClickedTex);
 	GenNormalizationCubeMap(256, cube);
-	std::cout << "normal\t" << bumpMap << "\n";
 	
 	
 	// Load music
@@ -162,7 +162,7 @@ void Viewer::on_realize()
 	glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glLineWidth (1.0);
 */
-	glClearColor(0.7, 0.7, 1.0, 0.0);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
 	
 	
 	square = glGenLists(1);
@@ -311,13 +311,11 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 		return true;
 	}
-
-/*	// Draw game
-	drawFloor();
-	drawScene(0);
-//	
-	
-	
+/*	glDisable(GL_LIGHTING);
+//	glColorMaterial(GL_FRONT, GL_AMBIENT);
+		drawFloor();
+//		drawScene(0);
+		
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	glDepthMask(GL_FALSE);
 	glEnable(GL_CULL_FACE);
@@ -342,42 +340,46 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 	glStencilFunc(GL_NOTEQUAL, 0x0, 0xff);
 	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-/*		glPushMatrix();
-		glLoadIdentity();
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
-		glLoadIdentity();
-		glOrtho(0, 1, 1, 0, 0, 1);
-		glDisable(GL_DEPTH_TEST);
-
-		glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-		glBegin(GL_QUADS);
-			glVertex2i(0, 0);
-			glVertex2i(0, 1);
-			glVertex2i(1, 1);
-			glVertex2i(1, 0);
-		glEnd();
-
-		glEnable(GL_DEPTH_TEST);
-		glPopMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glPopMatrix();
 	glDisable(GL_STENCIL_TEST);
-	
-	drawFloor();*/
-		
-/*	glColor4f(0.7f, 0.4f, 0.0f, 1.0f);				// Set Color To An Orange
-	glDisable(GL_LIGHTING);						// Disable Lighting
-	glDepthMask(GL_FALSE);						// Disable Depth Mask
-	glTranslatef(lightPos[0], lightPos[1], lightPos[2]);				// Translate To Light's Position
-	
-	GLUquadricObj *quadratic;	
-	quadratic=gluNewQuadric();								// Notice We're Still In Local Coordinate System
-	gluSphere(quadratic, 0.2f, 16, 8);					// Draw A Little Yellow Sphere (Represents Light)
-//	glEnable(GL_LIGHTING);						// Enable Lighting
-	glDepthMask(GL_TRUE);						// Enable Depth Mask*/
+		glEnable(GL_LIGHTING);
+		drawFloor();
+		drawScene(0);		*/
 
-	
+			glDisable(GL_DEPTH_TEST);
+			      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+			      /* Draw 1 into the stencil buffer. */
+			      glEnable(GL_STENCIL_TEST);
+			      glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+			      glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
+
+			      /* Now render floor; floor pixels just get their stencil set to 1. */
+			      drawFloor();
+
+			      /* Re-enable update of color and depth. */ 
+			      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			      glEnable(GL_DEPTH_TEST);
+
+			      /* Now, only render where stencil is set to 1. */
+			      glStencilFunc(GL_EQUAL, 1, 0xffffffff);  /* draw if ==1 */
+			      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+			
+drawShadowVolumes();
+silhouette.clear();
+drawFloor();	
+
+glDisable(GL_STENCIL_TEST);
+drawReflections();
+drawScene(0);
+drawGrid();
+drawParticles();	
+drawBar();
+		
+
+//	glEnable(GL_LIGHTING);						// Enable Lighting
+//	glDepthMask(GL_TRUE);						// Enable Depth Mask
+
+	glColor3f(1.f, 1.f, 0.f);
 	GLUquadricObj *quadratic;	
 	quadratic=gluNewQuadric();			// Create A Pointer To The Quadric Object ( NEW )
 	gluQuadricNormals(quadratic, GLU_SMOOTH);	// Create Smooth Normals ( NEW )
@@ -391,12 +393,13 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	
 
 //	drawShadowVolumes();	
-//	silhouette.clear();
 
-//	drawRoom();
+
+/*	drawReflections();
 	drawScene(0);
-		drawParticles();	
-	drawBar();
+	drawGrid();
+	drawParticles();	
+	drawBar();*/
 	
 	/*
 	Semi-broken motion blur. need to figure out why the screen gets so dim and why it is so slow
@@ -436,6 +439,97 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	return true;
 }
 
+void Viewer::drawReflections()
+{
+	/* Don't update color or depth. */
+	drawFloor();
+
+	  /* Draw reflected ninja, but only where floor is. */
+	glPushMatrix();
+		glRotatef(90, 1.0, 0, 0);
+		glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color */
+				drawScene(0);
+		glDisable(GL_BLEND);
+	glPopMatrix();
+
+
+
+/*	glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	 	glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color 
+	 	drawFloor();
+	glDisable(GL_BLEND);*/
+}
+void Viewer::drawGrid()
+{
+	glColor3d(1, 0, 0);
+	float thickness = 0.025f;
+	for (int i = 0;i<=WIDTH;i++)
+	{
+		glBegin(GL_LINES);
+		glVertex3f(i, 0, 1);
+//		glVertex3f(i + thickness, 0, 1);
+//		glVertex3f(i + thickness, HEIGHT, 1);
+		glVertex3f(i, HEIGHT, 1);
+		glEnd();
+	}
+	
+	for (int i = 0;i<=HEIGHT;i++)
+	{
+		glBegin(GL_LINES);
+		glVertex3f(0, i, 1);
+		glVertex3f(WIDTH, i, 1);
+	//	glVertex3f(WIDTH, i + thickness, 1);
+	//	glVertex3f(0, i + thickness, 1);
+		glEnd();
+	}
+	
+	float squareLength = 0.07;
+	for (int i = 1;i<WIDTH;i++)
+	{
+		for (int j=1;j<HEIGHT;j++)
+		{
+			glBegin(GL_QUADS);
+				glVertex3f(i - squareLength, j - squareLength, 1);
+				glVertex3f(i + squareLength, j - squareLength, 1);
+				glVertex3f(i + squareLength, j + squareLength, 1);
+				glVertex3f(i - squareLength, j + squareLength, 1);
+			glEnd();
+		}
+	}
+	
+	for (int i = 1;i<HEIGHT;i++)
+	{
+			glBegin(GL_QUADS);
+				glVertex3f(0, i - squareLength, 1);
+				glVertex3f(squareLength, i - squareLength, 1);
+				glVertex3f(squareLength, i + squareLength, 1);
+				glVertex3f(0, i + squareLength, 1);
+			glEnd();
+			
+			glBegin(GL_QUADS);
+				glVertex3f(WIDTH, i - squareLength, 1);
+				glVertex3f(WIDTH - squareLength, i - squareLength, 1);
+				glVertex3f(WIDTH - squareLength, i + squareLength, 1);
+				glVertex3f(WIDTH, i + squareLength, 1);
+			glEnd();
+	}
+	
+	glLineWidth(1.5);
+	float buffer = 1.f;
+	glBegin(GL_LINES);
+		glVertex3f(-buffer, 0, 1);
+		glVertex3f(-buffer, HEIGHT, 1);
+		
+		glVertex3f(WIDTH + buffer, 0, 1);
+		glVertex3f(WIDTH + buffer, HEIGHT, 1);
+		
+		glVertex3f(-buffer, 0, 1);
+		glVertex3f(WIDTH + buffer, 0, 1);		
+	glEnd();
+}
 void Viewer::drawParticles()
 {
 	for (int i = 0;i<game->blocksJustCleared.size();i++)
@@ -555,15 +649,7 @@ void Viewer::drawShadowVolumes()
 		for (int j = WIDTH - 1; j>=0;j--) // column
 		{				
 			
-			bool condition = game->get(i, j) != -1 && i > 1	&&(	game->get(i - 2, j) == -1 && i == game->py_ - 1 && j == game->px_ + 1 
-							 || 	game->get(i - 2, j) == -1 && i == game->py_ - 1 && j == game->px_ + 2);
-			condition = condition || (i > 0 && game->get(i - 1, j) == -1 && i == game->py_ - 2 && j == game->px_ + 1 ||	game->get(i - 1, j) == -1 && i == game->py_ - 2 && j == game->px_ + 2);
-			if (condition)
-			{			
-				drawShadowCube (i - game->counter * frac, j, GL_LINE_LOOP );
-			
-			}
-			else if (game->get(i, j) != -1)
+			if (game->get(i, j) != -1)
 			{
 				drawShadowCube (i, j, GL_QUADS );
 				
@@ -579,23 +665,23 @@ void Viewer::drawShadowVolumes()
 	Point3D temp3;
 	Point3D lightPoint(lightPos[0], lightPos[1], lightPos[2]);
 	glColor4d(0, 0, 0, 0.3);
-		glBegin(GL_QUADS);			
+	
 	for (int i = 0;i<silhouette.size();i++)
 	{
 		
 		temp =  silhouette[i].first - lightPoint;
 		temp2 = silhouette[i].second - lightPoint;
 		temp3 = silhouette[i].first +  100*temp;
-		
-
+			
+			glBegin(GL_QUADS);			
 			glVertex3d(silhouette[i].first[0], silhouette[i].first[1], silhouette[i].second[2]);
 			glVertex3d(temp3[0], temp3[1], temp3[2]);
 			temp3 = silhouette[i].second + 100*temp2;	
 			glVertex3d(temp3[0], temp3[1], temp3[2]);
 			glVertex3d(silhouette[i].second[0], silhouette[i].second[1], silhouette[i].second[2]);
-			glVertex3d(silhouette[i].first[0], silhouette[i].first[1], silhouette[i].second[2]);
-	}
 			glEnd();
+	}
+	glColor4d(1, 1, 1, 1);
 }
 
 void Viewer::drawShadowCube(float y, float x, GLenum mode)
@@ -731,30 +817,31 @@ void Viewer::drawFallingBox()
 void Viewer::drawFloor()
 {
 			// Draw Floor
-		//	glEnable(GL_TEXTURE_2D);
-	//		glBindTexture(GL_TEXTURE_2D, floorTexId);
-	//		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	//		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, floorTexId);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	
+			glNormal3f(0.0, 1.0, 0.0);
 			glColor3d(1, 1, 1);
 			glBegin(GL_QUADS);
-			glNormal3f(0.0, 1.0, 0.0);
 	//		glTexCoord2f(0.0, 0.0);
-			glVertex3d(-100, -1, -100);
+	  	glVertex3d(-100, -1, -100);
 	//		glTexCoord2f(0.0, 10.0);
-			glVertex3d(-100, -1, 100);
+	  	glVertex3d(-100, -1, 100);
 	//		glTexCoord2f(10.0, 10.0);
-			glVertex3d(100, -1, 100);
+	  	glVertex3d(100, -1, 100);
 	//		glTexCoord2f(10.0, 0.0);
-			glVertex3d(100, -1, -100);
-			glEnd();
-	//		glBindTexture(GL_TEXTURE_2D, 0);
-	//		glDisable(GL_TEXTURE_2D);	
+	  	glVertex3d(100, -1, -100);
+	  	glEnd();
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDisable(GL_TEXTURE_2D);	
 }
 void Viewer::drawScene(int itesdfr)
 {		
 
 		// Draw Border
-		for (int y = -1;y< HEIGHT;y++)
+/*		for (int y = -1;y< HEIGHT;y++)
 		{
 			drawCube(y, -1, 7, GL_LINE_LOOP);
 
@@ -764,7 +851,7 @@ void Viewer::drawScene(int itesdfr)
 		{
 			drawCube (-1, x, 7, GL_LINE_LOOP);
 		}
-		
+		*/
 	
 
 
@@ -964,20 +1051,20 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 		x2x1 = event->x - startPos[0];
 		x2x1 /= 10;
 		
-/*		if (mouseB1Down) // Rotate x
+		if (mouseB1Down) // Rotate x
 			rotationAngleX += x2x1;
 		if (mouseB2Down) // Rotate y
 			rotationAngleY += x2x1;
 		if (mouseB3Down) // Rotate z
-			rotationAngleZ += x2x1;*/
+			rotationAngleZ += x2x1;
 			
-		if (mouseB1Down) // Rotate x
+/*		if (mouseB1Down) // Rotate x
 			lightPos[0] += x2x1;
 		if (mouseB2Down) // Rotate y
 			lightPos[1]  += x2x1;
 		if (mouseB3Down) // Rotate z
 			lightPos[2]  += x2x1;
-			
+*/			
 		// Reset the tickTimer
 		if (!rotateTimer.connected())
 			rotateTimer = Glib::signal_timeout().connect(sigc::bind(sigc::mem_fun(*this, &Viewer::on_expose_event), (GdkEventExpose *)NULL), 100);
@@ -1241,6 +1328,13 @@ void Viewer::drawBumpCube(float y, float x, int colourId, GLenum mode, bool mult
 		glMultiTexCoord2f(GL_TEXTURE2, 0.0f, 1.0f);
 		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
 	glEnd();
+	
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	glDisable(GL_TEXTURE_CUBE_MAP);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+	
 }
 void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiColour)
 {
@@ -1345,7 +1439,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiCol
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
 
-	// top face
+/*	// top face
 	glNormal3d(0, 1, 0);
 	
 	glBegin(mode);
@@ -1413,7 +1507,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiCol
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
 		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
-	glEnd();
+	glEnd();*/
 	
 	glBindTexture(GL_TEXTURE_2D, 0);
 	if (transluceny)
@@ -1586,7 +1680,7 @@ void Viewer::setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared)
 
 bool Viewer::moveClearBar()
 {
-	game->moveClearBar();
+	game->markBlocksForClearing();
 	invalidate();
 	return true;
 }

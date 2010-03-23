@@ -114,6 +114,8 @@ private:
 	void drawRoom();
 	void drawStartScreen(bool picking, GLuint texId);
 	void drawParticles();
+	void drawGrid();
+	void drawReflections();
 	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);

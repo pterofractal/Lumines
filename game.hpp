@@ -17,7 +17,7 @@
 
 #include <iostream>
 #include <vector>
-
+class Viewer;
 class Piece {
 public:
 	Piece();
@@ -146,20 +146,26 @@ void dropShadowPiece();
 				int r, c, col;
 			};
 			std::vector<ClearedBlock > blocksJustCleared;
+	void markBlocksForClearing();
+	void dropPiece(int side);
+	void setViewer(Viewer *v)
+	{
+		viewer = v;
+	}
 private:
 	bool doesPieceFit(const Piece& p, int x, int y) const;
 
 	void removeRow(int y);
 	int collapse();
 
-	void markBlocksForClearing();
+
 
   void removePiece(const Piece& p, int x, int y);
   void placePiece(const Piece& p, int x, int y);
 
   void generateNewPiece();
 
-	void dropPiece(int side);
+
 
 private:
 	int board_width_;
@@ -176,6 +182,7 @@ private:
 	// Extra stuff
 	int score_, linesCleared_;
 	double clearBarPos;
+	Viewer *viewer;
 	
 };
 
