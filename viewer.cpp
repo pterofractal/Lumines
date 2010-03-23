@@ -39,9 +39,11 @@ Viewer::Viewer()
 	loadScreen = false;
 	
 	activeTextureId = 0;
-	loadTexture = true;
+	loadTexture = false;
 	loadBumpMapping = false;
 	transluceny = false;
+	moveLeft = false;
+	moveRight = false;
 	// Game starts at a slow pace of 500ms
 	gameSpeed = DEFAULT_GAME_SPEED;
 	
@@ -279,9 +281,9 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	//glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	// Define properties of light 
-	float ambientLight0[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+	float ambientLight0[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	float diffuseLight0[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 	float specularLight0[] = { 0.6f, 0.6f, 0.6f, 1.0f };
 
@@ -311,70 +313,88 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 		return true;
 	}
-/*	glDisable(GL_LIGHTING);
-//	glColorMaterial(GL_FRONT, GL_AMBIENT);
-		drawFloor();
-//		drawScene(0);
-		
+	
+/*	glColorMaterial(GL_FRONT, GL_AMBIENT);
+	drawFloor();
+//	drawReflections();
+	drawScene(0);
+//	drawGrid();
+//	drawParticles();	
+//	drawBar();
+	
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	glDepthMask(GL_FALSE);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_STENCIL_TEST);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(0.0f, 100.0f);
+//	glEnable(GL_POLYGON_OFFSET_FILL);
+//	glPolygonOffset(0.0f, 100.0f);
 
 	glCullFace(GL_FRONT);
-	glStencilFunc(GL_ALWAYS, 0x0, 0xff);
-	glStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
+	glStencilFunc(GL_ALWAYS, 0x0, 0xffffff);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 	drawShadowVolumes();
 
 	glCullFace(GL_BACK);
-	glStencilFunc(GL_ALWAYS, 0x0, 0xff);
-	glStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
+	glStencilFunc(GL_ALWAYS, 0x0, 0xffffff);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
 	drawShadowVolumes();
 
-	glDisable(GL_POLYGON_OFFSET_FILL);
+//	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_CULL_FACE);
+	
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glDepthMask(GL_TRUE);
-
-	glStencilFunc(GL_NOTEQUAL, 0x0, 0xff);
+	glStencilFunc(GL_EQUAL, 0x0, 0xffffff);
 	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+	glEnable(GL_LIGHTING);
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	drawFloor();
+	//drawReflections();
+	drawScene(0);
+	//drawGrid();
+	//drawParticles();	
+	//drawBar();
 	glDisable(GL_STENCIL_TEST);
-		glEnable(GL_LIGHTING);
-		drawFloor();
-		drawScene(0);		*/
+	silhouette.clear();*/
+	
+	
+	glDisable(GL_DEPTH_TEST);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-			glDisable(GL_DEPTH_TEST);
-			      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+	glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
 
-			      /* Draw 1 into the stencil buffer. */
-			      glEnable(GL_STENCIL_TEST);
-			      glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-			      glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
+	drawFloor();
 
-			      /* Now render floor; floor pixels just get their stencil set to 1. */
-			      drawFloor();
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
 
-			      /* Re-enable update of color and depth. */ 
-			      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			      glEnable(GL_DEPTH_TEST);
-
-			      /* Now, only render where stencil is set to 1. */
-			      glStencilFunc(GL_EQUAL, 1, 0xffffffff);  /* draw if ==1 */
-			      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	glStencilFunc(GL_EQUAL, 1, 0xffffffff);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 			
-drawShadowVolumes();
-silhouette.clear();
-drawFloor();	
+	drawShadowVolumes();
+	silhouette.clear();
+	drawFloor();	
 
-glDisable(GL_STENCIL_TEST);
-drawReflections();
-drawScene(0);
-drawGrid();
-drawParticles();	
-drawBar();
-		
+	glDisable(GL_STENCIL_TEST);
+	drawReflections();		
+/*	if (moveRight)
+	{
+		moveRight = false;
+		drawMoveBlur(1);
+	}
+	else if (moveLeft)
+	{
+		drawMoveBlur(-1);
+		moveLeft = false;
+	}*/
+	drawScene(0);
+	drawGrid();
+	drawParticles();	
+	drawBar();
+
+	
 
 //	glEnable(GL_LIGHTING);						// Enable Lighting
 //	glDepthMask(GL_TRUE);						// Enable Depth Mask
@@ -439,6 +459,28 @@ drawBar();
 	return true;
 }
 
+void Viewer::drawMoveBlur(int side)
+{
+	int r = game->py_;
+	int c = game->px_;
+	std::cout << r << ", " << c << std::endl;
+	
+		std::cout << game->get(r-1, c) << "\n";
+		std::cout << game->get(r-side, c+side) << "\n";
+		std::cout << game->get(r-side, c-side) << "\n";
+			
+//	c = c - side;
+		
+	glEnable(GL_BLEND);
+	
+	for (int i = 0;i<10;i++)
+	{
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		drawCube(r-side, c + side * (i * 0.1), game->get(r-side, c+side), GL_QUADS);
+		drawCube(r-side-1, c + side * (i * 0.1), game->get(r-side, c+side), GL_QUADS);
+	}
+	glDisable(GL_BLEND);
+}
 void Viewer::drawReflections()
 {
 	/* Don't update color or depth. */
@@ -446,11 +488,14 @@ void Viewer::drawReflections()
 
 	  /* Draw reflected ninja, but only where floor is. */
 	glPushMatrix();
+//		glTranslatef(0, 0.1f, -2);
 		glRotatef(90, 1.0, 0, 0);
+		glTranslatef(0, 1,-1);
 		glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color */
 				drawScene(0);
+				drawParticles(false);
 		glDisable(GL_BLEND);
 	glPopMatrix();
 
@@ -530,7 +575,7 @@ void Viewer::drawGrid()
 		glVertex3f(WIDTH + buffer, 0, 1);		
 	glEnd();
 }
-void Viewer::drawParticles()
+void Viewer::drawParticles(bool step)
 {
 	for (int i = 0;i<game->blocksJustCleared.size();i++)
 	{
@@ -568,14 +613,15 @@ void Viewer::drawParticles()
 				glTexCoord2f(0.0f, 1.0f);
 				glVertex3d(0, rad, 1);
 			glEnd();
-		glPopMatrix();		
-		
-		if (particles[i]->step(0.1))
+		glPopMatrix();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_TEXTURE_2D);		
+		if (step && particles[i]->step(0.1))
 		{
 			particles.erase(particles.begin() + i);
 		}
 	}
-	glDisable(GL_BLEND);
+			glDisable(GL_BLEND);
 }
 void Viewer::addParticleBox(float x, float y, int colour)
 {
@@ -810,17 +856,17 @@ void Viewer::drawFallingBox()
 			drawCube (game->py_ - 2, game->px_ + 1, 7, GL_LINE_LOOP );
 			drawCube (game->py_ - 2, game->px_ + 2, 7, GL_LINE_LOOP );
 	    glPopMatrix();
-		glAccum(GL_ACCUM, iterFrac);
+//		glAccum(GL_ACCUM, iterFrac);
 	}
 }
 
 void Viewer::drawFloor()
 {
 			// Draw Floor
-			glEnable(GL_TEXTURE_2D);
+/*			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, floorTexId);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );*/
 	
 			glNormal3f(0.0, 1.0, 0.0);
 			glColor3d(1, 1, 1);
@@ -834,8 +880,8 @@ void Viewer::drawFloor()
 	//		glTexCoord2f(10.0, 0.0);
 	  	glVertex3d(100, -1, -100);
 	  	glEnd();
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glDisable(GL_TEXTURE_2D);	
+		//	glBindTexture(GL_TEXTURE_2D, 0);
+		//	glDisable(GL_TEXTURE_2D);	
 }
 void Viewer::drawScene(int itesdfr)
 {		
@@ -1573,18 +1619,20 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
 		sm.PlaySound(turnSound);*/
 		
-		
+	int r, c;
+	r = game->py_;
+	c = game->px_;
 	if (ev->keyval == GDK_Left)
-		game->moveLeft();
+		moveLeft = game->moveLeft();
 	else if (ev->keyval == GDK_Right)
-		game->moveRight();
+		moveRight = game->moveRight();
 	else if (ev->keyval == GDK_Up)
 		game->rotateCCW();
 	else if (ev->keyval == GDK_Down)
 		game->rotateCW();
 	else if (ev->keyval == GDK_space)
-		game->drop();
-		
+		game->drop();	
+	
 	invalidate();
 	return true;
 }

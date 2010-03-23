@@ -113,9 +113,10 @@ private:
 	void drawShadowCube(float y, float x, GLenum mode);
 	void drawRoom();
 	void drawStartScreen(bool picking, GLuint texId);
-	void drawParticles();
+	void drawParticles(bool step = true);
 	void drawGrid();
 	void drawReflections();
+	void drawMoveBlur(int side); // 0 = right | 1 = left
 	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
@@ -197,6 +198,8 @@ private:
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
 	std::vector< Particle *> particles;
+	bool moveLeft;
+	bool moveRight;
 };
 
 #endif
