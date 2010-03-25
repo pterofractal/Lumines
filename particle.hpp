@@ -8,7 +8,7 @@ class Particle
 {
 	public:
 		Particle();
-		Particle(Point3D pos, float radius, Vector3D velocity, float decay, int colIndex);
+		Particle(Point3D pos, float radius, Vector3D velocity, float decay, int colIndex, Vector3D acceleration);
 		virtual ~Particle();
 		
 		float getDecay();
@@ -25,8 +25,8 @@ class Particle
 	private:
 	float decay;
 	Point3D pos;
-	float radius;
-	Vector3D velocity;
+	float rad;
+	Vector3D vel;
 	Vector3D accel;
 	float alpha;
 	int colourIndex;

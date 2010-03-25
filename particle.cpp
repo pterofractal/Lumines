@@ -1,16 +1,16 @@
 #include "particle.hpp"
 #include <iostream>
 
-Particle::Particle(Point3D position, float rad, Vector3D vel, float d, int colIndex)
+Particle::Particle(Point3D position, float radius, Vector3D velocity, float d, int colIndex, Vector3D acceleration)
 {
 	pos = position;
-	radius = rad;
-	velocity = vel;
+	rad = radius;
+	vel = velocity;
 	decay = d;
 	colourIndex = colIndex;
 	// Defaults
 	alpha = 1.f;
-//	accel = 0.f;
+	accel = acceleration;
 }
 
 float Particle::getDecay()
@@ -25,12 +25,12 @@ Point3D Particle::getPos()
 
 float Particle::getRadius()
 {
-	return radius;
+	return rad;
 }
 
 Vector3D Particle::getVelocity()
 {
-	return velocity;
+	return vel;
 }
 
 float Particle::getAlpha()
@@ -45,7 +45,8 @@ bool Particle::step(float t)
 		return true;
 		
 	// Move particle forward
-	pos = pos + t * velocity;
+	vel = vel + t * accel;
+	pos = pos + t * vel;
 
 	// Decay defines how long the particle will be alive for
 	decay -= t; 

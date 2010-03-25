@@ -20,7 +20,7 @@
 #define OBLOCKCOL 2
 #define XCLEARBLOCKCOL 3
 #define OCLEARBLOCKCOL 4
-#define COUNTER_SPACE 16
+#define COUNTER_SPACE 17
 int lastClearedRow = -1;
 static const Piece PIECES[] = {
   Piece(
@@ -164,9 +164,10 @@ Game::Game(int width, int height)
 	, stopped_(false)
 	, linesCleared_(0)
 	, score_(0)
+	, numBlocksCleared(0)
+	, counter(0)
 {
   int sz = board_width_ * (board_height_+4);
-counter=0;
   board_ = new int[ sz ];
   std::fill(board_, board_ + sz, -1);
   generateNewPiece();
@@ -280,7 +281,8 @@ int Game::collapse()
 	int c = (int)clearBarPos;
 	if (c == lastClearedRow)
 		return 0;
-		
+	
+	int numClearedThisPass = 0;
 	for (int r = board_height_ + 2; r>= 0; --r)
 	{					
 		if ((get(r, c) == XCLEARBLOCKCOL || get(r, c) == OCLEARBLOCKCOL ) && r != py_)
@@ -295,11 +297,14 @@ int Game::collapse()
 			get(r, c) = -1;
 			pullDown(r, c);
 			lastClearedRow = c;
+			numBlocksCleared++;
+			score_ += (linesCleared_+10) / 10;
+			linesCleared_++;
+			numClearedThisPass++;
 		}
 	}
-	
 	// Pull pieces down
-	return 0;
+	return numClearedThisPass;
 }
 
 void Game::pullDown(int y, int x)
@@ -343,15 +348,16 @@ int Game::tick()
 		return -1;
 	}
 	
+	int returnVal;
 	removePiece(piece_, px_, py_);
 	markBlocksForClearing();
-	collapse();
+	returnVal = collapse();
 	moveClearBar();
 	if (counter < COUNTER_SPACE)
 	{
 		counter++;
 		placePiece(piece_, px_, py_);
-		return 0;
+		return returnVal;
 	}		
 	
 	counter = 0;	
@@ -382,9 +388,8 @@ int Game::tick()
 				dropPiece(1);
 				counter = COUNTER_SPACE;
 			}
-	    	int rm = 0;
 	    	generateNewPiece();
-	    	return rm;
+	    	return returnVal;
 		}
 	}
 	else 
@@ -392,7 +397,7 @@ int Game::tick()
 		placePiece(piece_, px_, ny);
 		sy_ = py_;
 		py_ = ny;
-		return 0;
+		return returnVal;
 	}
 }
 
@@ -462,7 +467,7 @@ bool Game::drop()
 	while(true) 
 	{
     	--ny;
-		score_ += 1 + (linesCleared_ / 10);
+		score_ += 1 + (linesCleared_ / 100);
     	if(!doesPieceFit(piece_, px_, ny)) 
 		{
       		break;
@@ -528,6 +533,8 @@ bool Game::moveClearBar()
 	{
 		lastClearedRow = board_width_;
 		clearBarPos = 0;
+		numBlocksCleared = 0;
+		
 	}
 	clearBarPos += 0.2;
 }

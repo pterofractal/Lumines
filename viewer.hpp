@@ -52,6 +52,7 @@ public:
 	void toggleTexture();
 	void toggleBumpMapping();
 	void toggleTranslucency();
+	void toggleMoveLightSource();
 	void makeRasterFont();
 	void printString(const char *s);
 	
@@ -200,6 +201,7 @@ private:
 	std::vector< Particle *> particles;
 	bool moveLeft;
 	bool moveRight;
+	bool moveLightSource;
 };
 
 #endif

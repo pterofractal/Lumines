@@ -29,6 +29,7 @@ AppWindow::AppWindow()
 	m_menu_drawMode.items().push_back(MenuElem("_Texture 1", Gtk::AccelKey("t"), sigc::mem_fun(m_viewer, &Viewer::toggleTexture ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping 1", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Translucency", Gtk::AccelKey("u"), sigc::mem_fun(m_viewer, &Viewer::toggleTranslucency ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Move Light Source", Gtk::AccelKey("l"), sigc::mem_fun(m_viewer, &Viewer::toggleMoveLightSource ) ) );
 
 	m_menu_buffer.items().push_back(CheckMenuElem("_Double Buffer", Gtk::AccelKey("b"), buffer_slot ));
 	
@@ -39,7 +40,7 @@ AppWindow::AppWindow()
 	
 	// Set up the score label	
 	scoreLabel.set_text("Score:\t0");
-	linesClearedLabel.set_text("Lines Cleared:\t0");
+	linesClearedLabel.set_text("Deleted:\t0");
 	
 	m_viewer.setScoreWidgets(&scoreLabel, &linesClearedLabel);
 	

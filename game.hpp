@@ -181,6 +181,8 @@ private:
 
 	// Extra stuff
 	int score_, linesCleared_;
+	int numBlocksCleared;
+	int numDeleted;
 	double clearBarPos;
 	Viewer *viewer;
 	

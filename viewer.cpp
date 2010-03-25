@@ -10,7 +10,7 @@
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
-int SND_ID_1 = 0;
+
 Viewer::Viewer()
 {
 	
@@ -37,9 +37,9 @@ Viewer::Viewer()
 	clickedButton = false;
 	// 
 	loadScreen = false;
-	
+	moveLightSource = false;
 	activeTextureId = 0;
-	loadTexture = false;
+	loadTexture = true;
 	loadBumpMapping = false;
 	transluceny = false;
 	moveLeft = false;
@@ -65,7 +65,7 @@ Viewer::Viewer()
 	//  - a depth buffer to avoid things overlapping wrongly
 	//  - double-buffered rendering to avoid tearing/flickering
 	//	- Multisample rendering to smooth out edges
-	glconfig = Gdk::GL::Config::create(	Gdk::GL::MODE_RGB |
+	glconfig = Gdk::GL::Config::create(	Gdk::GL::MODE_RGBA |
 										Gdk::GL::MODE_DEPTH |
 										Gdk::GL::MODE_DOUBLE |
 										Gdk::GL::MODE_ACCUM |
@@ -166,24 +166,9 @@ void Viewer::on_realize()
 */
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	
-	
-	square = glGenLists(1);
-	glNewList(square, GL_COMPILE);
-		glBegin(GL_QUADS);
-		 	glTexCoord2f(0.0f, 0.0f);
-			glVertex3d(0, 0, 1);
-			
-			glTexCoord2f(1.0f, 0.0f);
-			glVertex3d(1, 0, 1);
+	// Initialize random number generator
+ 	srand ( time(NULL) );
 
-			glTexCoord2f(1.0f, 1.0f);
-			glVertex3d(1, 1, 1);
-
-			glTexCoord2f(0.0f, 1.0f);	
-			glVertex3d(0, 1, 1);
-		glEnd();
-	glEndList();
-	
 	gldrawable->gl_end();
 }
 
@@ -358,7 +343,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	silhouette.clear();*/
 	
 	
-	glDisable(GL_DEPTH_TEST);
+/*	glDisable(GL_DEPTH_TEST);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
 	glEnable(GL_STENCIL_TEST);
@@ -378,7 +363,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	drawFloor();	
 
 	glDisable(GL_STENCIL_TEST);
-	drawReflections();		
+*/	
 /*	if (moveRight)
 	{
 		moveRight = false;
@@ -389,15 +374,23 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		drawMoveBlur(-1);
 		moveLeft = false;
 	}*/
+	drawFloor();
+	drawReflections();	
 	drawScene(0);
 	drawGrid();
 	drawParticles();	
 	drawBar();
+/*	if (game->counter == 0)
+	{
+		pauseGame();
+		drawScene(0);
+		//glAccum(GL_LOAD, 1.f);
+		glClear(GL_ACCUM_BUFFER_BIT);
+		drawFallingBox();
+		glAccum(GL_RETURN, 1.f);
 
-	
-
-//	glEnable(GL_LIGHTING);						// Enable Lighting
-//	glDepthMask(GL_TRUE);						// Enable Depth Mask
+		pauseGame();
+	}*/
 
 	glColor3f(1.f, 1.f, 0.f);
 	GLUquadricObj *quadratic;	
@@ -427,7 +420,8 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	{
 		pauseGame();
 		drawScene(0);
-		glClear(GL_ACCUM_BUFFER_BIT);
+		glAccum(GL_LOAD, 1.f);
+//		glClear(GL_ACCUM_BUFFER_BIT);
 		drawFallingBox();
 		glAccum(GL_RETURN, 1.f);
 
@@ -490,7 +484,7 @@ void Viewer::drawReflections()
 	glPushMatrix();
 //		glTranslatef(0, 0.1f, -2);
 		glRotatef(90, 1.0, 0, 0);
-		glTranslatef(0, 1,-1);
+		glTranslatef(0, 1, 0);
 		glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color */
@@ -628,20 +622,17 @@ void Viewer::addParticleBox(float x, float y, int colour)
 	Point3D pos(x, y, 0);
 	float radius = 0.2f;
 	float decay = 2.f;
-	Vector3D vel(-1, -1, 0);
-	for (int i = 0;i<5;i++)
+	float n = 10.f;
+	for (int i = 0;i<n;i++)
 	{
-		for (int j = 0;j<5;j++)
+		for (int j = 0;j<n;j++)
 		{
-			particles.push_back(new Particle(pos, radius, vel, decay, colour));			
-			pos[0] = pos[0] + 0.2;
-			vel[0] = vel[0] + 0.4;
+			Vector3D randVel(rand()%5 - 2.5f, rand()%5 - 2.5f, 0);
+			Vector3D randAccel(rand()%5 - 2.5f, rand()%5 - 2.5f, 0);
+			particles.push_back(new Particle(pos, radius, randVel, decay, colour, randAccel));			
+			pos[0] = x + (j / n);
 		}
-		pos[0] = x;
-		pos[1] = pos[1] + 0.2;
-		
-		vel[0] = -1;
-		vel[1] = vel[1]  + 0.4;
+		pos[1] = pos[1] + 1.f/n;
 	}
 }
 
@@ -837,8 +828,7 @@ void Viewer::drawBar()
 }
 
 void Viewer::drawFallingBox()
-{
-	
+{	
 	int iter = 16;
 	float iterFrac = 1.f/iter;
 	for (int i = 0;i<iter;i++)
@@ -856,7 +846,7 @@ void Viewer::drawFallingBox()
 			drawCube (game->py_ - 2, game->px_ + 1, 7, GL_LINE_LOOP );
 			drawCube (game->py_ - 2, game->px_ + 2, 7, GL_LINE_LOOP );
 	    glPopMatrix();
-//		glAccum(GL_ACCUM, iterFrac);
+		glAccum(GL_ACCUM, iterFrac);
 	}
 }
 
@@ -1060,6 +1050,21 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 {
 	double x2x1;
+	
+	if (moveLightSource)
+	{
+			// See how much we have moved
+			x2x1 = (event->x - startPos[0]);
+			if (mouseB1Down) // Rotate x
+				lightPos[0] += x2x1;
+			if (mouseB2Down) // Rotate y
+				lightPos[1]  += x2x1;
+			if (mouseB3Down) // Rotate z
+				lightPos[2]  += x2x1;
+
+			invalidate();
+			return true;
+	}
 	if (shiftIsDown) // Start Scaling
 	{
 		// Store some initial values
@@ -1375,10 +1380,16 @@ void Viewer::drawBumpCube(float y, float x, int colourId, GLenum mode, bool mult
 		glVertex3f(vertex_position[0], vertex_position[1], vertex_position[2]);
 	glEnd();
 	
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	glActiveTexture(GL_TEXTURE0);
+//	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	glDisable(GL_TEXTURE_CUBE_MAP);
 
-	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE1);
+//	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+	
+	glActiveTexture(GL_TEXTURE2);
+//	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
 	
 }
@@ -1455,6 +1466,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiCol
 	
 	if (loadTexture && colourId != 7)
 	{		
+		glActiveTexture(GL_TEXTURE0);
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, texture[colourId - 1]);
 	}
@@ -1485,7 +1497,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiCol
 		glVertex3d(innerXMin + x, innerYMax + y, zMax);
 	glEnd();
 
-/*	// top face
+	// top face
 	glNormal3d(0, 1, 0);
 	
 	glBegin(mode);
@@ -1553,7 +1565,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool multiCol
 		glVertex3d(innerXMax + x, innerYMax + y, zMin);
 		glTexCoord2f(0.0f, 1.0f);
 		glVertex3d(innerXMin + x, innerYMax + y, zMin);
-	glEnd();*/
+	glEnd();
 	
 	glBindTexture(GL_TEXTURE_2D, 0);
 	if (transluceny)
@@ -1656,7 +1668,7 @@ bool Viewer::gameTick()
 	if (returnVal > 0)
 	{
     	linesStream << game->getLinesCleared();
-		linesClearedLabel->set_text("Lines Cleared:\t" + linesStream.str());
+		linesClearedLabel->set_text("Deleted:\t" + linesStream.str());
 	}
 	
 	if (game->getLinesCleared() / 10 > (DEFAULT_GAME_SPEED - gameSpeed) / 50 && gameSpeed > 75)
@@ -2037,4 +2049,9 @@ void Viewer::pauseGame()
 		tickTimer.disconnect();
 	else
 		tickTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::gameTick), gameSpeed);
+}
+
+void Viewer::toggleMoveLightSource()
+{
+	moveLightSource = !moveLightSource;
 }
