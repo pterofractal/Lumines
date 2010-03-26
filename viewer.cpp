@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "appwindow.hpp"
 
+#define NUM_TEXTURES	6
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
@@ -278,27 +279,6 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 	
-	glActiveTexture(GL_TEXTURE0);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, backgroundTex);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glBegin(GL_QUADS);
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-9, 0, -10);
-		
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-9, 16, -10);
-		
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f(27, 16, -10);
-		
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f(27, 0, -10);
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glDisable(GL_TEXTURE_2D);
-	
 	if (loadScreen)
 	{
 		drawStartScreen(false, playButtonTex);
@@ -386,32 +366,32 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 
 	glDisable(GL_STENCIL_TEST);
 */	
-/*	if (moveRight)
-	{
-		moveRight = false;
-		drawMoveBlur(1);
-	}
-	else if (moveLeft)
-	{
-		drawMoveBlur(-1);
-		moveLeft = false;
-	}*/
+
+		
+	drawBackground();
 	drawFloor();
 	drawReflections();	
 	drawScene(0);
 	drawGrid();
 	drawParticles();	
 	drawBar();
+
+
 /*	if (game->counter == 0)
 	{
-		pauseGame();
-		drawScene(0);
-		//glAccum(GL_LOAD, 1.f);
 		glClear(GL_ACCUM_BUFFER_BIT);
 		drawFallingBox();
 		glAccum(GL_RETURN, 1.f);
-
-		pauseGame();
+	}
+	else
+	{
+		drawBackground();
+		drawFloor();
+		drawReflections();	
+		drawScene(0);
+		drawGrid();
+		drawParticles();	
+		drawBar();
 	}*/
 
 	glColor3f(1.f, 1.f, 0.f);
@@ -475,6 +455,29 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	return true;
 }
 
+void Viewer::drawBackground()
+{
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, backgroundTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(-9, 0, -10);
+		
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(-9, 16, -10);
+		
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(27, 16, -10);
+		
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(27, 0, -10);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+}
 void Viewer::drawMoveBlur(int side)
 {
 	int r = game->py_;
@@ -851,11 +854,21 @@ void Viewer::drawBar()
 
 void Viewer::drawFallingBox()
 {	
-	int iter = 16;
+	int iter = 4;
 	float iterFrac = 1.f/iter;
 	for (int i = 0;i<iter;i++)
 	{
-	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			drawBackground();
+			drawFloor();
+			drawReflections();	
+			drawScene(0);
+			drawGrid();
+			drawParticles();	
+			drawBar();
+		
+		
 		glPushMatrix();
 	    	glTranslatef(0, i * iterFrac, 0);
 			drawCube (game->py_ - 1, game->px_ + 1, game->get(game->py_ - 1, game->px_ + 1), GL_QUADS );
@@ -869,6 +882,10 @@ void Viewer::drawFallingBox()
 			drawCube (game->py_ - 2, game->px_ + 2, 7, GL_LINE_LOOP );
 	    glPopMatrix();
 		glAccum(GL_ACCUM, iterFrac);
+		
+		//glDrawBuffer(GL_FRONT);
+	//    glAccum(GL_RETURN, 1.0);
+	//    glDrawBuffer(GL_BACK);
 	}
 }
 
@@ -1690,8 +1707,8 @@ bool Viewer::gameTick()
 	if (cubesDeletedBeforeTick/100 < cubesDeletedAfterTick/100)
 	{
 		int level = cubesDeletedAfterTick/100 + 1;
-		if (level > 3)
-			level = 3;
+		if (level > NUM_TEXTURES)
+			level = NUM_TEXTURES;
 			
 		newTexStream << level;
 		s = "x" + newTexStream.str() + ".bmp";

@@ -118,6 +118,7 @@ private:
 	void drawGrid();
 	void drawReflections();
 	void drawMoveBlur(int side); // 0 = right | 1 = left
+	void drawBackground();
 	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
 	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
