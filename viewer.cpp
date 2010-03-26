@@ -124,10 +124,10 @@ void Viewer::on_realize()
 		return;
 	
 	texture = new GLuint[7];
-	LoadGLTextures("red.bmp", texture[0]);
-	LoadGLTextures("blue.bmp", texture[1]);
-	LoadGLTextures("lightRed.bmp", texture[2]);
-	LoadGLTextures("lightBlue.bmp", texture[3]);
+	LoadGLTextures("x1.bmp", texture[0]);
+	LoadGLTextures("o1.bmp", texture[1]);
+	LoadGLTextures("xLight1.bmp", texture[2]);
+	LoadGLTextures("oLight1.bmp", texture[3]);
 	LoadGLTextures("black.bmp", texture[4]);
 	LoadGLTextures("normal.bmp", bumpMap);
 	LoadGLTextures("floor.bmp", floorTexId);
@@ -1680,7 +1680,7 @@ bool Viewer::gameTick()
 	int returnVal = game->tick();
 	int cubesDeletedAfterTick = game->getLinesCleared();
 	// String streams used to print score and lines cleared	
-	std::stringstream scoreStream, linesStream; 
+	std::stringstream scoreStream, linesStream, newTexStream; 
 	std::string s;
 	
 	// Update the score
@@ -1689,10 +1689,24 @@ bool Viewer::gameTick()
 	
 	if (cubesDeletedBeforeTick/100 < cubesDeletedAfterTick/100)
 	{
-		LoadGLTextures("jWhite.bmp", texture[0]);
-		LoadGLTextures("jRed.bmp", texture[1]);
-		LoadGLTextures("jLightWhite.bmp", texture[2]);
-		LoadGLTextures("jLightRed.bmp", texture[3]);
+		int level = cubesDeletedAfterTick/100 + 1;
+		if (level > 3)
+			level = 3;
+			
+		newTexStream << level;
+		s = "x" + newTexStream.str() + ".bmp";
+		LoadGLTextures(s.c_str(), texture[0]);
+		
+		s = "o" + newTexStream.str() + ".bmp";
+		LoadGLTextures(s.c_str(), texture[1]);
+
+		s = "xLight" + newTexStream.str() + ".bmp";
+		LoadGLTextures(s.c_str(), texture[2]);
+
+		s = "oLight" + newTexStream.str() + ".bmp";
+		LoadGLTextures(s.c_str(), texture[3]);
+		
+		s = "";
 	}
 	// If a line was cleared update the linesCleared widget
 	if (returnVal > 0)
@@ -1759,7 +1773,14 @@ void Viewer::newGame()
 	linesStream << game->getLinesCleared();
 	linesClearedLabel->set_text("Lines Cleared:\t" + linesStream.str());
 	
+	
+	// Load level 1 textures
+	LoadGLTextures("x1.bmp", texture[0]);
+	LoadGLTextures("o1.bmp", texture[1]);
+	LoadGLTextures("xLight1.bmp", texture[2]);
+	LoadGLTextures("oLight1.bmp", texture[3]);
 	invalidate();
+	
 }
 
 void Viewer::setScoreWidgets(Gtk::Label *score, Gtk::Label *linesCleared)
@@ -1801,7 +1822,7 @@ void Viewer::drawStartScreen(bool pick, GLuint texId)
 
 // quick and dirty bitmap loader...for 24 bit bitmaps with 1 plane only.  
 // See http://www.dcs.ed.ac.uk/~mxr/gfx/2d/BMP.txt for more info.
-int Viewer::ImageLoad(char *filename, Image *image) {
+int Viewer::ImageLoad(const char *filename, Image *image) {
     FILE *file;
     unsigned long size;                 // size of the image in bytes.
     unsigned long i;                    // standard counter.
@@ -1882,7 +1903,7 @@ int Viewer::ImageLoad(char *filename, Image *image) {
 }
     
 // Load Bitmaps And Convert To Textures
-int  Viewer::LoadGLTextures(char *filename, GLuint &texid) {	
+int  Viewer::LoadGLTextures(const char *filename, GLuint &texid) {	
     // Load Texture
     Image *image1;
     

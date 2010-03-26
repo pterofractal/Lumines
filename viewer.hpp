@@ -76,8 +76,8 @@ public:
 	};
 	typedef struct Image Image;
 	
-	int ImageLoad(char *filename, Image *image);
-	int LoadGLTextures(char *filename, GLuint &texid);
+	int ImageLoad(const char *filename, Image *image);
+	int LoadGLTextures(const char *filename, GLuint &texid);
 
 	// Bump mapping stuff	
 	int GenNormalizationCubeMap(unsigned int size, GLuint &texid);
