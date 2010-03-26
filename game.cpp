@@ -349,11 +349,14 @@ int Game::tick()
 	}
 	
 	int returnVal;
+	int level =  linesCleared_/100;
+	if (level > 12)
+		level = 12;
 	removePiece(piece_, px_, py_);
 	markBlocksForClearing();
 	returnVal = collapse();
 	moveClearBar();
-	if (counter < COUNTER_SPACE)
+	if (counter < COUNTER_SPACE - level)
 	{
 		counter++;
 		placePiece(piece_, px_, py_);

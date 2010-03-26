@@ -133,6 +133,7 @@ void Viewer::on_realize()
 	LoadGLTextures("floor.bmp", floorTexId);
 	LoadGLTextures("playButton.bmp", playButtonTex);
 	LoadGLTextures("playButtonClicked.bmp", playButtonClickedTex);
+	LoadGLTextures("background.bmp", backgroundTex);
 	GenNormalizationCubeMap(256, cube);
 	
 	
@@ -276,6 +277,27 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, backgroundTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(-9, 0, -10);
+		
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(-9, 16, -10);
+		
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(27, 16, -10);
+		
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(27, 0, -10);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
 	
 	if (loadScreen)
 	{
@@ -853,25 +875,25 @@ void Viewer::drawFallingBox()
 void Viewer::drawFloor()
 {
 			// Draw Floor
-/*			glEnable(GL_TEXTURE_2D);
+			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, floorTexId);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );*/
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	
 			glNormal3f(0.0, 1.0, 0.0);
 			glColor3d(1, 1, 1);
 			glBegin(GL_QUADS);
-	//		glTexCoord2f(0.0, 0.0);
+			glTexCoord2f(0.0, 0.0);
 	  	glVertex3d(-100, -1, -100);
-	//		glTexCoord2f(0.0, 10.0);
+			glTexCoord2f(0.0, 10.0);
 	  	glVertex3d(-100, -1, 100);
-	//		glTexCoord2f(10.0, 10.0);
+			glTexCoord2f(10.0, 10.0);
 	  	glVertex3d(100, -1, 100);
-	//		glTexCoord2f(10.0, 0.0);
+			glTexCoord2f(10.0, 0.0);
 	  	glVertex3d(100, -1, -100);
 	  	glEnd();
-		//	glBindTexture(GL_TEXTURE_2D, 0);
-		//	glDisable(GL_TEXTURE_2D);	
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDisable(GL_TEXTURE_2D);	
 }
 void Viewer::drawScene(int itesdfr)
 {		
@@ -1626,10 +1648,10 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	if (gameOver)
 		return true;
 	
-/*	if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
+	if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
 		sm.PlaySound(moveSound);
 	else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
-		sm.PlaySound(turnSound);*/
+		sm.PlaySound(turnSound);
 		
 	int r, c;
 	r = game->py_;
@@ -1653,9 +1675,10 @@ bool Viewer::gameTick()
 {
 	if (loadScreen)
 		return true;
-		
-	int returnVal = game->tick();
 	
+	int cubesDeletedBeforeTick = game->getLinesCleared();
+	int returnVal = game->tick();
+	int cubesDeletedAfterTick = game->getLinesCleared();
 	// String streams used to print score and lines cleared	
 	std::stringstream scoreStream, linesStream; 
 	std::string s;
@@ -1664,6 +1687,13 @@ bool Viewer::gameTick()
 	scoreStream << game->getScore();
 	scoreLabel->set_text("Score:\t" + scoreStream.str());
 	
+	if (cubesDeletedBeforeTick/100 < cubesDeletedAfterTick/100)
+	{
+		LoadGLTextures("jWhite.bmp", texture[0]);
+		LoadGLTextures("jRed.bmp", texture[1]);
+		LoadGLTextures("jLightWhite.bmp", texture[2]);
+		LoadGLTextures("jLightRed.bmp", texture[3]);
+	}
 	// If a line was cleared update the linesCleared widget
 	if (returnVal > 0)
 	{
