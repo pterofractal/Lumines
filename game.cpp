@@ -309,7 +309,7 @@ int Game::collapse()
 
 void Game::pullDown(int y, int x)
 {
-	for(int r = y + 1; r < board_height_; ++r) 
+	for(int r = y + 1; r < board_height_+2; ++r) 
 	{
 		get(r-1, x) = get(r, x);
 	}
