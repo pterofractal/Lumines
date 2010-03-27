@@ -4,7 +4,7 @@
 
 AppWindow::AppWindow()
 {
-	set_title("488 Tetrominoes on the Wall");
+	set_title("Lumines");
 
 	// A utility class for constructing things that go into menus, which
 	// we'll set up next.
@@ -30,6 +30,7 @@ AppWindow::AppWindow()
 	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping 1", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Translucency", Gtk::AccelKey("u"), sigc::mem_fun(m_viewer, &Viewer::toggleTranslucency ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Move Light Source", Gtk::AccelKey("l"), sigc::mem_fun(m_viewer, &Viewer::toggleMoveLightSource ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("Motion _Blur", Gtk::AccelKey("m"), sigc::mem_fun(m_viewer, &Viewer::toggleMotionBlur ) ) );
 
 	m_menu_buffer.items().push_back(CheckMenuElem("_Double Buffer", Gtk::AccelKey("b"), buffer_slot ));
 	
@@ -58,7 +59,7 @@ AppWindow::AppWindow()
 	// by default, so it'll take up the rest of the window.
 	
 	//m_viewer.set_size_request(300, 600);
-	m_viewer.set_size_request(900, 600);
+	m_viewer.set_size_request(600, 400);
 	m_vbox.pack_start(m_viewer);
 	
 	show_all();

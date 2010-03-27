@@ -53,6 +53,7 @@ public:
 	void toggleBumpMapping();
 	void toggleTranslucency();
 	void toggleMoveLightSource();
+	void toggleMotionBlur();
 	void makeRasterFont();
 	void printString(const char *s);
 	
@@ -60,7 +61,7 @@ public:
 	bool moveClearBar();
 	void pauseGame();
 	void addParticleBox(float x, float y, int colour);
-
+	void addFireworks(float x, float y);
 
 
 	// Texture mapping stuff	
@@ -106,7 +107,7 @@ protected:
 
 
 private:
-	void drawScene(int iter);
+	void drawScene(bool draw3D = true);
 	void drawBar();
 	void drawFallingBox();
 	void drawFloor();
@@ -120,8 +121,8 @@ private:
 	void drawMoveBlur(int side); // 0 = right | 1 = left
 	void drawBackground();
 	
-	void drawCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
-	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool multiColour = false);
+	void drawCube(float y, float x, int colourId, GLenum mode, bool draw3D = true);
+	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool draw3D = true);
 	DrawMode currentDrawMode;
 	
 	// The angle at which we are currently rotated
@@ -203,6 +204,8 @@ private:
 	bool moveLeft;
 	bool moveRight;
 	bool moveLightSource;
+	bool motionBlur;
+	bool levelUpAnimation;
 };
 
 #endif
