@@ -2,7 +2,6 @@
 #include <iostream>
 #include <sstream>
 #include <GL/gl.h>
-#include <GL/glu.h>
 #include <GL/glut.h>
 #include <assert.h>
 #include "appwindow.hpp"
@@ -145,12 +144,11 @@ void Viewer::on_realize()
 	moveSound = sm.LoadSound("move.ogg");
 	turnSound = sm.LoadSound("turn.ogg");
 //	sm.PlaySound(backgroundMusic);
-
-	// Just enable depth testing and set the background colour.
-	//	glEnable(GL_DEPTH_TEST);
 	
 	
-	
+	// Sphere for particles
+	particleSphere = gluNewQuadric();
+		
 	
 	glClearDepth (1.0f);								
 	glDepthFunc (GL_LEQUAL);							
@@ -382,10 +380,12 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		{	
 			levelUpAnimation = false;
 			int numFireworks = 10;
-			for (int i = 0;i<numFireworks;i++)
-			{			
-				addFireworks(rand()%16, rand()%10);
-			}
+			addFireworks(8 + rand()%4 - 2, 5 + rand()%4 - 2);
+			addFireworks(3 + rand()%4 - 2, 3 + rand()%4 - 2);
+			addFireworks(3 + rand()%4 - 2, 8 + rand()%4 - 2);
+			addFireworks(8 + rand()%4 - 2, 2 + rand()%4 - 2);
+			addFireworks(14 + rand()%4 - 2, 6 + rand()%4 - 2);
+			addFireworks(16 + rand()%4 - 2, 8 + rand()%4 - 2);
 		}
 	}
 	else
@@ -610,7 +610,7 @@ void Viewer::drawGrid()
 }
 void Viewer::drawParticles(bool step)
 {
-	for (int i = 0;i<game->blocksJustCleared.size();i++)
+	for (unsigned int i = 0;i<game->blocksJustCleared.size();i++)
 	{
 		addParticleBox(game->blocksJustCleared[i].c, game->blocksJustCleared[i].r, game->blocksJustCleared[i].col);
 	}
@@ -619,42 +619,76 @@ void Viewer::drawParticles(bool step)
 	float mag;
 	Point3D pos;
 	float rad;
+	float *colour;
 	Vector3D velocity;
 	Point3D col;
 	float alpha;
-	for (int i = 0;i<particles.size();i++)
+	glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA);
+	for (unsigned int i = 0;i<particles.size();i++)
 	{
 		pos = particles[i]->getPos();
 		rad = particles[i]->getRadius();
 		alpha = particles[i]->getAlpha();
-		mag = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
-		mag = (1.f/mag);
 		
-		glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA);
-		glColor4f(mag * pos[0], mag * pos[1], mag * pos[2], alpha);
-		glPushMatrix();
-			glTranslatef(pos[0], pos[1], pos[2]);
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, texture[particles[i]->getColour() - 1]);
-			glBegin(GL_QUADS);
-				glTexCoord2f(0.0f, 0.0f);
-				glVertex3d(0, 0, 1);
-				glTexCoord2f(1.0f, 0.0f);
-				glVertex3d(rad, 0, 1);
-				glTexCoord2f(1.0f, 1.0f);
-				glVertex3d(rad, rad, 1);
-				glTexCoord2f(0.0f, 1.0f);
-				glVertex3d(0, rad, 1);
-			glEnd();
-		glPopMatrix();
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glDisable(GL_TEXTURE_2D);		
+		if (particles[i]->getShape() == 0)
+		{			
+			mag = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
+			mag = (1.f/mag);
+			glColor4f(mag * pos[0], mag * pos[1], mag * pos[2], alpha);
+			glPushMatrix();
+				glTranslatef(pos[0], pos[1], pos[2]);
+				glEnable(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, texture[particles[i]->getColourIndex() - 1]);
+				glBegin(GL_QUADS);
+					glTexCoord2f(0.0f, 0.0f);
+					glVertex3d(0, 0, 1);
+					glTexCoord2f(1.0f, 0.0f);
+					glVertex3d(rad, 0, 1);
+					glTexCoord2f(1.0f, 1.0f);
+					glVertex3d(rad, rad, 1);
+					glTexCoord2f(0.0f, 1.0f);
+					glVertex3d(0, rad, 1);
+				glEnd();
+			glPopMatrix();
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDisable(GL_TEXTURE_2D);	
+		}	
+		else if (particles[i]->getShape() == 1 && step)
+		{
+			colour = particles[i]->getColour();
+			GLUquadricObj *sphere = gluNewQuadric();
+			glColor4f(colour[0], colour[1], colour[2], alpha);
+			gluQuadricNormals(sphere, GLU_SMOOTH);	// Create Smooth Normals ( NEW )
+			gluQuadricTexture(sphere, GL_TRUE);
+			glPushMatrix();
+				glTranslatef(pos[0], pos[1], pos[2]);
+				gluSphere(sphere, rad, 32, 32);
+			glPopMatrix();	
+			delete(sphere);			
+
+			if (colour[1] > 1)
+			{
+				colour[1] = 1;
+				colour[0] = 0;
+			}
+			
+			if (colour[2] > 1)
+				colour[2] = 1;
+				
+			if (colour[0] > 0)
+			{
+				colour[1] += 0.2;
+			}
+			else
+				colour[2] += 0.2;
+		}
+		
 		if (step && particles[i]->step(0.1))
 		{
 			particles.erase(particles.begin() + i);
 		}
 	}
-			glDisable(GL_BLEND);
+	glDisable(GL_BLEND);
 }
 void Viewer::addParticleBox(float x, float y, int colour)
 {
@@ -662,13 +696,19 @@ void Viewer::addParticleBox(float x, float y, int colour)
 	float radius = 0.2f;
 	float decay = 2.f;
 	float n = 10.f;
+	float empty[3];
+	empty[0] = 0;
+	empty[1] = 0;
+	empty[2] = 0;
 	for (int i = 0;i<n;i++)
 	{
 		for (int j = 0;j<n;j++)
 		{
 			Vector3D randVel(rand()%5 - 2.5f, rand()%5 - 2.5f, 0);
 			Vector3D randAccel(rand()%5 - 2.5f, rand()%5 - 2.5f, 0);
-			particles.push_back(new Particle(pos, radius, randVel, decay, colour, randAccel));			
+			Particle *p = new Particle(pos, radius, randVel, decay, empty, randAccel, 0);
+			p->setColourIndex(colour);
+			particles.push_back(p);			
 			pos[0] = x + (j / n);
 		}
 		pos[1] = pos[1] + 1.f/n;
@@ -679,19 +719,33 @@ void Viewer::addFireworks(float x, float y)
 {
 	Point3D pos(x, y, 0);
 	float radius = 0.2f;
-	float decay = 3.f;
+	float decay = 2.5f;
 	float n = 10.f;
 	for (int i = 0;i<n;i++)
 	{
 		for (int j = 0;j<n;j++)
 		{
-			int colour = rand()%2;
-			Vector3D randVel(rand()%10 - 5.f, rand()%10 - 5.f, 0);
-			Vector3D randAccel(rand()%10 - 5.f, rand()%10 - 5.f, 0);
-			particles.push_back(new Particle(pos, radius, randVel, decay, colour, randAccel));			
-			pos[0] = x + (j / n);
+			float *colour = (float *)malloc(sizeof(float) * 3);
+			colour[0] = rand()%1000 + 1000;
+			colour[1] = rand()%1000 + 1000;
+			colour[2] = rand()%1000 + 1000;
+			colour[0] /= 1000.f;
+			colour[1] /= 1000.f;
+			colour[2] /= 1000.f;
+			
+			colour[0] = 1;
+			colour[1] = 0;
+			colour[2] = 0;
+			float a = rand()%10000 + 1000;
+			float b = rand()%10000 + 1000;
+			a /= 1000.f;
+			b /= 1000.f;
+			Vector3D randVel(a - 5.f, b - 5.f, 0);
+			Vector3D randAccel(0, -9.8f + rand() % 5, 0);
+			particles.push_back(new Particle(pos, radius, randVel, decay, colour, randAccel, 1));			
+			//pos[0] = x + (j / n);
 		}
-		pos[1] = pos[1] + 1.f/n;
+	//	pos[1] = pos[1] + 1.f/n;
 	}
 }
 
@@ -739,7 +793,6 @@ void Viewer::drawRoom()							// Draw The Room (Box)
 }
 void Viewer::drawShadowVolumes()
 {
-	float frac = 1.f/16;
 	for (int i = HEIGHT+3;i>=0;i--) // row
 	{
 		for (int j = WIDTH - 1; j>=0;j--) // column
@@ -750,9 +803,6 @@ void Viewer::drawShadowVolumes()
 				drawShadowCube (i, j, GL_QUADS );
 				
 			}
-				
-
-			// Draw outline for cube
 		}
 	}
 	
@@ -762,7 +812,7 @@ void Viewer::drawShadowVolumes()
 	Point3D lightPoint(lightPos[0], lightPos[1], lightPos[2]);
 	glColor4d(0, 0, 0, 0.3);
 	
-	for (int i = 0;i<silhouette.size();i++)
+	for (unsigned int i = 0;i<silhouette.size();i++)
 	{
 		
 		temp =  silhouette[i].first - lightPoint;
@@ -852,9 +902,9 @@ void Viewer::drawShadowCube(float y, float x, GLenum mode)
 		silhouette.push_back(std::pair<Point3D, Point3D>(h, e) );
 		std::cerr << "back face " << Vector3D(0, 0, -1).dot(lightVec) << "\n";		
 	}
-	for (int i = 0;i<silhouette.size();i++)
+	for (unsigned int i = 0;i<silhouette.size();i++)
 	{
-		for (int j = i+1;j<silhouette.size();j++)
+		for (unsigned int j = i+1;j<silhouette.size();j++)
 		{
 			if (silhouette[i].first == silhouette[j].first && silhouette[i].second == silhouette[j].second)	
 			{
@@ -970,7 +1020,7 @@ void Viewer::drawScene(bool draw3D)
 		for (int j = WIDTH - 1; j>=0;j--) // column
 		{				
 			if(loadBumpMapping && game->get(i, j) != -1)
-				drawBumpCube (i, j, game->get(i, j), GL_QUADS, draw3D );
+				drawBumpCube (i, j, game->get(i, j), draw3D );
 			else if(game->get(i, j) != -1)
 				drawCube (i, j, game->get(i, j), GL_QUADS, draw3D );
 				
@@ -1196,7 +1246,7 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 	return true;
 }
 
-void Viewer::drawBumpCube(float y, float x, int colourId, GLenum mode, bool draw3D)
+void Viewer::drawBumpCube(float y, float x, int colourId, bool draw3D)
 {
 	// Set The First Texture Unit To Normalize Our Vector From The Surface To The Light.
 	// Set The Texture Environment Of The First Texture Unit To Replace It With The
@@ -2019,7 +2069,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(int j=0; j<size; j++)
+	for(unsigned int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -2039,7 +2089,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(int j=0; j<size; j++)
+	for(unsigned int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -2059,7 +2109,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(int j=0; j<size; j++)
+	for(unsigned int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{
@@ -2079,7 +2129,7 @@ int Viewer::GenNormalizationCubeMap(unsigned int size, GLuint &texid)
 			0, GL_RGB8, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	bytePtr = 0;
-	for(int j=0; j<size; j++)
+	for(unsigned int j=0; j<size; j++)
 	{
 		for(unsigned int i=0; i<size; i++)
 		{

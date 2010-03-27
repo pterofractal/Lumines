@@ -8,7 +8,7 @@ class Particle
 {
 	public:
 		Particle();
-		Particle(Point3D pos, float radius, Vector3D velocity, float decay, int colIndex, Vector3D acceleration);
+		Particle(Point3D pos, float radius, Vector3D velocity, float decay, float *col, Vector3D acceleration, int shape = 0);
 		virtual ~Particle();
 		
 		float getDecay();
@@ -17,12 +17,19 @@ class Particle
 		Vector3D getVelocity();	
 		float getAlpha();
 		void setAlpha();
-		void setColour(int colIndex);
-		int getColour();
+		void setColourIndex(int colIndex);
+		int getColourIndex();
+		float* getColour();
 		bool step(float t);
+		int getShape();
+		
+		
+		
 	protected:
 
 	private:
+
+	float *colour;
 	float decay;
 	Point3D pos;
 	float rad;
@@ -30,5 +37,6 @@ class Particle
 	Vector3D accel;
 	float alpha;
 	int colourIndex;
+	int shape;
 };
 #endif

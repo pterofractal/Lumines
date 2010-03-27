@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 #include "particle.hpp"
+#include <GL/glu.h>
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
 public:
@@ -122,7 +123,7 @@ private:
 	void drawBackground();
 	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool draw3D = true);
-	void drawBumpCube(float y, float x, int colourId, GLenum mode, bool draw3D = true);
+	void drawBumpCube(float y, float x, int colourId, bool draw3D = true);
 	DrawMode currentDrawMode;
 	
 	// The angle at which we are currently rotated
@@ -206,6 +207,7 @@ private:
 	bool moveLightSource;
 	bool motionBlur;
 	bool levelUpAnimation;
+	GLUquadricObj *particleSphere;	
 };
 
 #endif

@@ -1,13 +1,14 @@
 #include "particle.hpp"
 #include <iostream>
 
-Particle::Particle(Point3D position, float radius, Vector3D velocity, float d, int colIndex, Vector3D acceleration)
+Particle::Particle(Point3D position, float radius, Vector3D velocity, float d, float *col, Vector3D acceleration, int shape)
 {
 	pos = position;
 	rad = radius;
 	vel = velocity;
 	decay = d;
-	colourIndex = colIndex;
+	colour = col;
+		this->shape = shape;
 	// Defaults
 	alpha = 1.f;
 	accel = acceleration;
@@ -61,15 +62,25 @@ bool Particle::step(float t)
 	return false;
 }
 
-void Particle::setColour(int colIndex)
+void Particle::setColourIndex(int colIndex)
 {
 	colourIndex = colIndex;
 }
 
-int Particle::getColour()
+int Particle::getColourIndex()
 {
 	return colourIndex;
 }
+float* Particle::getColour()
+{
+	return colour;
+}
+
+int Particle::getShape()
+{
+	return shape;
+}
+
 Particle::~Particle()
 {
 	
