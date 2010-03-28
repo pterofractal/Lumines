@@ -195,6 +195,7 @@ private:
 	int backgroundMusic;
 	int turnSound;
 	int moveSound;
+	int introMusic;
 	GLuint square;
 	float shadowProj[16];
 	float lightPos[4];

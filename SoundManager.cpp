@@ -64,9 +64,9 @@ int SoundManager::LoadSound(char* file){
 
 }
 
-int SoundManager::PlaySound(int snd){
+int SoundManager::PlaySound(int snd, int loop){
     if(snd<0 && snd>=nSounds) return -1;
-    channel[snd] = Mix_PlayChannel(-1, chunks[snd], 0 /*-1*/);
+    channel[snd] = Mix_PlayChannel(-1, chunks[snd], loop);
     return 0;
 }
 

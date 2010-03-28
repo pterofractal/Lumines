@@ -170,6 +170,7 @@ Game::Game(int width, int height)
   int sz = board_width_ * (board_height_+4);
   board_ = new int[ sz ];
   std::fill(board_, board_ + sz, -1);
+nextPiece = PIECES[ rand() % 6 ];
   generateNewPiece();
 }
 
@@ -179,6 +180,7 @@ void Game::reset()
 	std::fill(board_, board_ + (board_width_*(board_height_+4)), -1);
 	linesCleared_ = 0;
 	score_ = 0;
+	nextPiece = PIECES[ rand() % 6 ];
 	generateNewPiece();
 }
 
@@ -327,14 +329,14 @@ void Game::placePiece(const Piece& p, int x, int y)
 	
 void Game::generateNewPiece() 
 {
-  piece_ = PIECES[ rand() % 6 ];
+	piece_ = nextPiece;
+	nextPiece = PIECES[ rand() % 6 ];
 
   int xleft = (board_width_-3) / 2;
 
   px_ = xleft;
   py_ = board_height_ + 3 - piece_.getBottomMargin();
 
-	shadowPiece_ = piece_;
 	sx_ = px_;
 	sy_ = py_;
 	
@@ -500,7 +502,6 @@ bool Game::rotateCW()
 
 	if(doesPieceFit(npiece, px_, py_)) 
 	{
-		shadowPiece_ = npiece;
 		placePiece(npiece, px_, py_);
 		piece_ = npiece;
 		return true;
@@ -518,7 +519,6 @@ bool Game::rotateCCW()
 	Piece npiece = piece_.rotateCCW();
 	if(doesPieceFit(npiece, px_, py_)) 
 	{
-		shadowPiece_ = npiece;
 		placePiece(npiece, px_, py_);
 		piece_ = npiece;
 		return true;
@@ -547,3 +547,16 @@ bool Game::moveClearBar()
 	clearBarPos += 0.2;
 }
 
+void Game::getNextPieceColour(int *col)
+{
+	int counter = 0;
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0;j<2;j++)
+		{
+			col[counter] = nextPiece.getColourIndex(i+1, j+1);
+			counter++;
+		}
+	}
+	
+}

@@ -149,10 +149,11 @@ void Viewer::on_realize()
 	
 	
 	// Load music
+	introMusic = sm.LoadSound("intro.ogg");
 	backgroundMusic = sm.LoadSound("lumines.ogg");
 	moveSound = sm.LoadSound("move.ogg");
 	turnSound = sm.LoadSound("turn.ogg");
-	//sm.PlaySound(backgroundMusic);
+	sm.PlaySound(introMusic, -1);
 	
 	
 	// Sphere for particles
@@ -443,7 +444,10 @@ void Viewer::drawAnimatables()
 				
 			if (animatables[i].frames.size() == 0)
 			{
-				animatables.erase(animatables.begin() + i);
+				//animatables.erase(animatables.begin() + i);
+				animatables.clear();
+				readFile("head.txt");
+				std::cout<<"deleting " << i << "\n";
 			}
 			
 		}
@@ -1009,6 +1013,14 @@ void Viewer::drawScene(bool draw3D)
 				drawCube(i, j, 7, GL_LINE_LOOP, draw3D);
 		}
 	}	
+	
+	// Draw next piece
+	int nextPieceCol[4];
+	game->getNextPieceColour(nextPieceCol);
+	drawCube(2, 19, nextPieceCol[0], GL_QUADS, draw3D);
+	drawCube(2, 20, nextPieceCol[1], GL_QUADS, draw3D);
+	drawCube(1, 19, nextPieceCol[2], GL_QUADS, draw3D);
+	drawCube(1, 20, nextPieceCol[3], GL_QUADS, draw3D);
 }
 bool Viewer::on_configure_event(GdkEventConfigure* event)
 {
@@ -1118,6 +1130,10 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				soundOnTex = soundOffTex;
 				soundOffTex = temp;
 				disableSound = !disableSound;
+				if (!disableSound)
+					sm.PlaySound(introMusic, -1);
+				else
+					sm.StopSound(introMusic);
 			}
 			else if (*ptr == singleSkinModeTex)
 			{
@@ -1161,9 +1177,13 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 {
 	startScalePos[0] = 0;
 	startScalePos[1] = 0;
-	if (clickedButton)
+	if (clickedButton && loadScreen)
 	{
+		clickedButton = false;
 		loadScreen = false;
+		sm.StopSound(introMusic);
+		if (!disableSound)
+			sm.PlaySound(backgroundMusic, -1);
 	}
 		
 	if (!shiftIsDown)
@@ -1204,7 +1224,8 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 	if (moveLightSource)
 	{
 			// See how much we have moved
-			x2x1 = (event->x - startPos[0]);
+			x2x1 = event->x - startPos[0];
+			x2x1 /= 10;
 			if (mouseB1Down) // Rotate x
 				lightPos[0] += x2x1;
 			if (mouseB2Down) // Rotate y
@@ -1259,13 +1280,6 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event)
 		if (mouseB3Down) // Rotate z
 			rotationAngleZ += x2x1;
 			
-/*		if (mouseB1Down) // Rotate x
-			lightPos[0] += x2x1;
-		if (mouseB2Down) // Rotate y
-			lightPos[1]  += x2x1;
-		if (mouseB3Down) // Rotate z
-			lightPos[2]  += x2x1;
-*/			
 		// Reset the tickTimer
 		if (!rotateTimer.connected())
 			rotateTimer = Glib::signal_timeout().connect(sigc::bind(sigc::mem_fun(*this, &Viewer::on_expose_event), (GdkEventExpose *)NULL), 100);
@@ -1859,10 +1873,6 @@ bool Viewer::gameTick()
 	{
 		animatables.clear();
 		readFile("headHappy.txt");	
-	}
-	else if (animatables.size() == 0)
-	{
-		readFile("head.txt");
 	}
 	
 	if (game->getLinesCleared() / 10 > (DEFAULT_GAME_SPEED - gameSpeed) / 50 && gameSpeed > 75)

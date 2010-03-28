@@ -34,7 +34,7 @@ class SoundManager {
     int LoadSound(char* file);
 
     // snd is the sound ID returned by LoadSound
-    int PlaySound(int snd);
+    int PlaySound(int snd, int loop = 0);
     int StopSound(int snd);
     int PauseSound(int snd);
     int ResumeSound(int snd);

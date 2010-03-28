@@ -153,6 +153,8 @@ void dropShadowPiece();
 		viewer = v;
 	}
 		int numBlocksCleared;
+			Piece nextPiece;
+		void getNextPieceColour(int *col);
 private:
 	bool doesPieceFit(const Piece& p, int x, int y) const;
 
@@ -175,7 +177,6 @@ private:
 	bool stopped_;
 
 	Piece piece_;
-	Piece shadowPiece_;
 
 
 	int* board_;
