@@ -14,7 +14,7 @@ AppWindow::AppWindow()
 
 	// Slots to connect to functions
 	sigc::slot1<void, Viewer::DrawMode> draw_slot = sigc::mem_fun(m_viewer, &Viewer::setDrawMode);
-	sigc::slot0<void> buffer_slot = sigc::mem_fun(m_viewer, &Viewer::toggleBuffer);
+	sigc::slot0<void> sound_slot = sigc::mem_fun(m_viewer, &Viewer::toggleSound);
 
 	// Set up the application menu
 	// The slot we use here just causes AppWindow::hide() on this,
@@ -25,19 +25,17 @@ AppWindow::AppWindow()
 	m_menu_app.items().push_back(MenuElem("_Quit", Gtk::AccelKey("q"),
 		sigc::mem_fun(*this, &AppWindow::hide)));
 	
-	m_menu_drawMode.items().push_back(MenuElem("_Face", Gtk::AccelKey("f"), sigc::bind( draw_slot, Viewer::FACE ) ) );
-	m_menu_drawMode.items().push_back(MenuElem("_Texture 1", Gtk::AccelKey("t"), sigc::mem_fun(m_viewer, &Viewer::toggleTexture ) ) );
-	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping 1", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Textures", Gtk::AccelKey("t"), sigc::mem_fun(m_viewer, &Viewer::toggleTexture ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Bump Mapping", Gtk::AccelKey("b"), sigc::mem_fun(m_viewer, &Viewer::toggleBumpMapping ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Translucency", Gtk::AccelKey("u"), sigc::mem_fun(m_viewer, &Viewer::toggleTranslucency ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Move Light Source", Gtk::AccelKey("l"), sigc::mem_fun(m_viewer, &Viewer::toggleMoveLightSource ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("Motion _Blur", Gtk::AccelKey("m"), sigc::mem_fun(m_viewer, &Viewer::toggleMotionBlur ) ) );
 
-	m_menu_buffer.items().push_back(CheckMenuElem("_Double Buffer", Gtk::AccelKey("b"), buffer_slot ));
+	m_menu_drawMode.items().push_back(CheckMenuElem("_Enable Sound", Gtk::AccelKey("s"), sound_slot ));
 	
 	// Set up the menu bar
 	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_File", m_menu_app));
-	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Draw Mode", m_menu_drawMode));
-	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Buffer", m_menu_buffer));	
+	m_menubar.items().push_back(Gtk::Menu_Helpers::MenuElem("_Game Settings", m_menu_drawMode));
 	
 	// Set up the score label	
 	scoreLabel.set_text("Score:\t0");

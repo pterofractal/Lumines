@@ -55,6 +55,7 @@ public:
 	void toggleTranslucency();
 	void toggleMoveLightSource();
 	void toggleMotionBlur();
+	void toggleSound();
 	void makeRasterFont();
 	void printString(const char *s);
 	

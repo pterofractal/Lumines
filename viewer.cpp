@@ -1179,7 +1179,6 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 	startScalePos[1] = 0;
 	if (clickedButton && loadScreen)
 	{
-		clickedButton = false;
 		loadScreen = false;
 		sm.StopSound(introMusic);
 		if (!disableSound)
@@ -2410,4 +2409,18 @@ void Viewer::readFile(char *filename)
 			getline (partsFile, name);
 		}
 	}
+}
+
+void Viewer::toggleSound()
+{
+	disableSound = !disableSound;
+	if (disableSound)
+	{
+		sm.StopSound(introMusic);
+		sm.StopSound(backgroundMusic);
+	}
+	else if (loadScreen)
+		sm.PlaySound(introMusic, -1);
+	else
+		sm.PlaySound(backgroundMusic, 1);
 }
