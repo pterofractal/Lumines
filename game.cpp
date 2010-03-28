@@ -536,6 +536,11 @@ bool Game::moveClearBar()
 	{
 		lastClearedRow = board_width_;
 		clearBarPos = 0;
+		if (numBlocksCleared > 15)
+		{
+			int multiplier = numBlocksCleared / 4;
+			score_ += multiplier * (numBlocksCleared+10) / 10;
+		}
 		numBlocksCleared = 0;
 		
 	}

@@ -202,6 +202,7 @@ private:
 	float planeNormal[4];
 	bool drawingShadow;
 	GLuint cube, bumpMap, floorTexId, playButtonTex, playButtonClickedTex, backgroundTex;
+	GLuint soundOnTex, soundOffTex, singleSkinModeTex, singleSkinModeClickedTex;
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
 	std::vector< Particle *> particles;
@@ -210,6 +211,8 @@ private:
 	bool moveLightSource;
 	bool motionBlur;
 	bool levelUpAnimation;
+	bool disableSound;
+	bool singleSkinMode;
 	GLUquadricObj *particleSphere;	
 	
 	struct Animatable{

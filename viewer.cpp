@@ -7,7 +7,7 @@
 #include <assert.h>
 #include "appwindow.hpp"
 
-#define NUM_TEXTURES	6
+#define NUM_TEXTURES	9
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
@@ -38,7 +38,7 @@ Viewer::Viewer()
 	rotateAboutZ = false;
 	clickedButton = false;
 	// 
-	loadScreen = false;
+	loadScreen = true;
 	moveLightSource = false;
 	activeTextureId = 0;
 	loadTexture = true;
@@ -48,6 +48,8 @@ Viewer::Viewer()
 	moveRight = false;
 	motionBlur = false;
 	levelUpAnimation = false;
+	singleSkinMode = false;
+	disableSound = false;
 	// Game starts at a slow pace of 500ms
 	gameSpeed = DEFAULT_GAME_SPEED;
 	
@@ -128,6 +130,12 @@ void Viewer::on_realize()
 		return;
 	
 	texture = new GLuint[7];
+	LoadGLTextures("playButton.bmp", playButtonTex);
+	LoadGLTextures("playButtonClicked.bmp", playButtonClickedTex);
+	LoadGLTextures("soundOn.bmp", soundOnTex);
+	LoadGLTextures("soundOff.bmp", soundOffTex);
+	LoadGLTextures("singleSkinMode.bmp", singleSkinModeTex);
+	LoadGLTextures("singleSkinModeClicked.bmp", singleSkinModeClickedTex);
 	LoadGLTextures("x1.bmp", texture[0]);
 	LoadGLTextures("o1.bmp", texture[1]);
 	LoadGLTextures("xLight1.bmp", texture[2]);
@@ -135,8 +143,7 @@ void Viewer::on_realize()
 	LoadGLTextures("black.bmp", texture[4]);
 	LoadGLTextures("normal.bmp", bumpMap);
 	LoadGLTextures("floor.bmp", floorTexId);
-	LoadGLTextures("playButton.bmp", playButtonTex);
-	LoadGLTextures("playButtonClicked.bmp", playButtonClickedTex);
+
 	LoadGLTextures("background.bmp", backgroundTex);
 	GenNormalizationCubeMap(256, cube);
 	
@@ -145,7 +152,7 @@ void Viewer::on_realize()
 	backgroundMusic = sm.LoadSound("lumines.ogg");
 	moveSound = sm.LoadSound("move.ogg");
 	turnSound = sm.LoadSound("turn.ogg");
-//	sm.PlaySound(backgroundMusic);
+	//sm.PlaySound(backgroundMusic);
 	
 	
 	// Sphere for particles
@@ -268,6 +275,28 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// it appear centered in the window.
 	glTranslated(-7.5, -10.0, 7.0);
 	
+	if (loadScreen)
+	{
+		drawBackground();
+		drawFloor();
+		drawStartScreen(false, playButtonTex);
+		
+		// We pushed a matrix onto the PROJECTION stack earlier, we 
+		// need to pop it.
+
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+
+		// Swap the contents of the front and back buffers so we see what we
+		// just drew. This should only be done if double buffering is enabled.
+		if (doubleBuffer)
+			gldrawable->swap_buffers();
+			
+		gldrawable->gl_end();
+
+		return true;
+	}
+	
 	// Create one light source
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
@@ -283,27 +312,6 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 	
-	if (loadScreen)
-	{
-		drawStartScreen(false, playButtonTex);
-		
-		// We pushed a matrix onto the PROJECTION stack earlier, we 
-		// need to pop it.
-
-		glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
-
-		// Swap the contents of the front and back buffers so we see what we
-		// just drew. This should only be done if double buffering is enabled.
-		if (doubleBuffer)
-			gldrawable->swap_buffers();
-		else
-			glFlush();	
-
-		gldrawable->gl_end();
-
-		return true;
-	}
 
 	if (!motionBlur)
 	{	
@@ -1036,23 +1044,28 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 	mouseDownPos[1] = event->y;
 	if (loadScreen)
 	{
-		GLuint buff[128] = {0};
+		GLuint buff[16] = {0};
 	 	GLint hits, view[4];
 
-			glSelectBuffer(128,buff);
+		glSelectBuffer(16,buff);
 		glRenderMode(GL_SELECT);
 
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
-		glTranslated(-3.0, 5.0, -30.0);
+			glLoadIdentity();
+			glGetIntegerv(GL_VIEWPORT,view);
+			gluPickMatrix(event->x, view[3] - event->y, 1, 1, view);			
+			gluPerspective(40.0, (GLfloat)get_width()/(GLfloat)get_height(), 0.1, 1000.0);
+			glTranslated(-3.0, 5.0, -30.0);
 
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glTranslated(-5.0, -12.0, 0.0);
-		glInitNames();
-		glPushName(0);
-			drawStartScreen(true, playButtonTex);
-		glMatrixMode(GL_PROJECTION);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			glTranslated(-7.5, -10.0, 7.0);
+			glInitNames();
+			glPushName(0);
+				drawStartScreen(true, playButtonTex);
+			glPopName();
+			glMatrixMode(GL_PROJECTION);
 		glPopMatrix();
 		glMatrixMode(GL_MODELVIEW);
 		glFlush();
@@ -1066,8 +1079,55 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 
 		if (hits > 0)
 		{
-			clickedButton = true;
-			playButtonTex = playButtonClickedTex;
+			GLuint names, *ptr, minZ,*ptrNames, numberOfNames;
+
+			printf ("hits = %d\n", hits);
+			ptr = (GLuint *) buff;
+			minZ = 0xffffffff;
+			for (unsigned int i = 0; i < hits; i++) 
+			{	
+				names = *ptr;
+				ptr++;
+				if (*ptr < minZ) 
+				{
+					numberOfNames = names;
+					minZ = *ptr;
+					ptrNames = ptr+2;
+				}
+
+				ptr += names+2;
+			}
+			
+			printf ("The closest hit names are ");
+			ptr = ptrNames;
+			for (unsigned int j = 0; j < numberOfNames; j++,ptr++) 
+			{
+				printf ("%d ", *ptr);
+			}
+			ptr--;
+			printf ("Tex ids are %d\t%d\t%d", playButtonTex, soundOnTex,singleSkinModeTex);
+			if (*ptr == playButtonTex)
+			{
+				playButtonTex = playButtonClickedTex;				
+				clickedButton = true;
+			}
+			else if (*ptr == soundOnTex)
+			{
+				GLuint temp;
+				temp = soundOnTex;
+				soundOnTex = soundOffTex;
+				soundOffTex = temp;
+				disableSound = !disableSound;
+			}
+			else if (*ptr == singleSkinModeTex)
+			{
+				GLuint temp;
+				temp = singleSkinModeTex;
+				singleSkinModeTex = singleSkinModeClickedTex;
+				singleSkinModeClickedTex = temp;
+				clickedButton = true;
+				singleSkinMode = true;
+			}
 			drawStartScreen(false, playButtonClickedTex);
 			invalidate();
 		}
@@ -1721,10 +1781,14 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	if (gameOver)
 		return true;
 	
-	if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
-		sm.PlaySound(moveSound);
-	else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
-		sm.PlaySound(turnSound);
+	if (loadScreen || !disableSound)
+	{
+		if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
+			sm.PlaySound(moveSound);
+		else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
+			sm.PlaySound(turnSound);		
+	}
+
 		
 	int r, c;
 	r = game->py_;
@@ -1760,7 +1824,7 @@ bool Viewer::gameTick()
 	scoreStream << game->getScore();
 	scoreLabel->set_text("Score:\t" + scoreStream.str());
 	
-	if (cubesDeletedBeforeTick/100 < cubesDeletedAfterTick/100)
+	if (!singleSkinMode && cubesDeletedBeforeTick/100 < cubesDeletedAfterTick/100)
 	{
 		int level = cubesDeletedAfterTick/100 + 1;
 		if (level > NUM_TEXTURES)
@@ -1791,7 +1855,7 @@ bool Viewer::gameTick()
 	}
 	
 
-	if (game->getClearBarPos() >= WIDTH && game->numBlocksCleared > 5)
+	if (game->getClearBarPos() >= WIDTH && game->numBlocksCleared > 15)
 	{
 		animatables.clear();
 		readFile("headHappy.txt");	
@@ -1897,19 +1961,58 @@ bool Viewer::moveClearBar()
 void Viewer::drawStartScreen(bool pick, GLuint texId)
 {
 	if (pick)
-		glPushName(1);
+		glPushName(playButtonTex);
 
+	glActiveTexture(GL_TEXTURE0);
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, texId);
+	glBindTexture(GL_TEXTURE_2D, playButtonTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0f, 0.0f);
-		glVertex3d(5, 3, 1);
+		glVertex3d(8, 8, 0);
 		glTexCoord2f(1.0f, 0.0f);
-		glVertex3d(13, 3, 1);
+		glVertex3d(12, 8, 0);
 		glTexCoord2f(1.0f, 1.0f);	
-		glVertex3d(13, 7, 1);
+		glVertex3d(12, 10, 0);
 		glTexCoord2f(0.0f, 1.0f);
-		glVertex3d(5, 7, 1);
+		glVertex3d(8, 10, 0);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	if (pick)
+	{
+		glPopName();
+		glPushName(soundOnTex);
+	}
+	
+	glBindTexture(GL_TEXTURE_2D, soundOnTex);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(8, 5, 0);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(12, 5, 0);
+		glTexCoord2f(1.0f, 1.0f);	
+		glVertex3d(12, 7, 0);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(8, 7, 0);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);	
+	if (pick)
+	{
+		glPopName();
+		glPushName(singleSkinModeTex);
+	}
+	
+	glBindTexture(GL_TEXTURE_2D, singleSkinModeTex);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3d(8, 2, 0);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3d(12, 2, 0);
+		glTexCoord2f(1.0f, 1.0f);	
+		glVertex3d(12, 4, 0);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3d(8, 4, 0);
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
 
