@@ -83,7 +83,9 @@ public:
 
 	// Bump mapping stuff	
 	int GenNormalizationCubeMap(unsigned int size, GLuint &texid);
-
+	void readFile(char *filename);
+	bool forceRender();
+	
 protected:
 
 	// Events we implement
@@ -121,9 +123,10 @@ private:
 	void drawReflections();
 	void drawMoveBlur(int side); // 0 = right | 1 = left
 	void drawBackground();
-	
+	void drawAnimatables();	
 	void drawCube(float y, float x, int colourId, GLenum mode, bool draw3D = true);
 	void drawBumpCube(float y, float x, int colourId, bool draw3D = true);
+	
 	DrawMode currentDrawMode;
 	
 	// The angle at which we are currently rotated
@@ -151,7 +154,7 @@ private:
 	bool doubleBuffer;
 	
 	// Timer used to call the tick method
-	sigc::connection tickTimer, clearBarTimer;
+	sigc::connection tickTimer, clearBarTimer, gameOverAnimTimer;
 	
 	// Timer for rotate
 	sigc::connection rotateTimer;
@@ -208,6 +211,17 @@ private:
 	bool motionBlur;
 	bool levelUpAnimation;
 	GLUquadricObj *particleSphere;	
+	
+	struct Animatable{
+		std::vector<Point3D> frames;
+		std::vector<float *> scales;
+		std::vector<float *> rotates;
+		int shapeType;	
+		bool loop;
+		float *col;
+	};
+	
+	std::vector<Animatable> animatables;
 };
 
 #endif

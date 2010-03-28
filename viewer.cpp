@@ -1,6 +1,7 @@
 #include "viewer.hpp"
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <GL/gl.h>
 #include <GL/glut.h>
 #include <assert.h>
@@ -10,6 +11,7 @@
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
+using namespace std;
 
 Viewer::Viewer()
 {
@@ -148,6 +150,8 @@ void Viewer::on_realize()
 	
 	// Sphere for particles
 	particleSphere = gluNewQuadric();
+	
+	readFile("head.txt");
 		
 	
 	glClearDepth (1.0f);								
@@ -262,7 +266,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// 10 and height 24 (game = 20, stripe = 4).  Let's translate
 	// the game so that we can draw it starting at (0,0) but have
 	// it appear centered in the window.
-	glTranslated(-5.0, -10.0, 10.0);
+	glTranslated(-7.5, -10.0, 7.0);
 	
 	// Create one light source
 	glEnable(GL_LIGHTING);
@@ -293,79 +297,14 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		// just drew. This should only be done if double buffering is enabled.
 		if (doubleBuffer)
 			gldrawable->swap_buffers();
-/*		else
-			glFlush();	*/
+		else
+			glFlush();	
 
 		gldrawable->gl_end();
 
 		return true;
 	}
-	
-/*	glColorMaterial(GL_FRONT, GL_AMBIENT);
-	drawFloor();
-//	drawReflections();
-	drawScene(0);
-//	drawGrid();
-//	drawParticles();	
-//	drawBar();
-	
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-	glDepthMask(GL_FALSE);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_STENCIL_TEST);
-//	glEnable(GL_POLYGON_OFFSET_FILL);
-//	glPolygonOffset(0.0f, 100.0f);
 
-	glCullFace(GL_FRONT);
-	glStencilFunc(GL_ALWAYS, 0x0, 0xffffff);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-	drawShadowVolumes();
-
-	glCullFace(GL_BACK);
-	glStencilFunc(GL_ALWAYS, 0x0, 0xffffff);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
-	drawShadowVolumes();
-
-//	glDisable(GL_POLYGON_OFFSET_FILL);
-	glDisable(GL_CULL_FACE);
-	
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-	glStencilFunc(GL_EQUAL, 0x0, 0xffffff);
-	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-	glEnable(GL_LIGHTING);
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-	drawFloor();
-	//drawReflections();
-	drawScene(0);
-	//drawGrid();
-	//drawParticles();	
-	//drawBar();
-	glDisable(GL_STENCIL_TEST);
-	silhouette.clear();*/
-	
-	
-/*	glDisable(GL_DEPTH_TEST);
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
-	glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
-
-	drawFloor();
-
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glEnable(GL_DEPTH_TEST);
-
-	glStencilFunc(GL_EQUAL, 1, 0xffffffff);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-			
-	drawShadowVolumes();
-	silhouette.clear();
-	drawFloor();	
-
-	glDisable(GL_STENCIL_TEST);
-*/	
 	if (!motionBlur)
 	{	
 		drawBackground();
@@ -375,6 +314,9 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		drawGrid();
 		drawParticles();	
 		drawBar();
+		glDisable(GL_LIGHTING);
+		drawAnimatables();
+		glEnable(GL_LIGHTING);
 		
 		if (levelUpAnimation)
 		{	
@@ -418,39 +360,6 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		gluSphere(quadratic,1.3f,32,32);
 	glPopMatrix();
 	
-	
-	
-
-//	drawShadowVolumes();	
-
-
-/*	drawReflections();
-	drawScene(0);
-	drawGrid();
-	drawParticles();	
-	drawBar();*/
-	
-	/*
-	Semi-broken motion blur. need to figure out why the screen gets so dim and why it is so slow
-	if (game->counter == 0)
-	{
-		pauseGame();
-		drawScene(0);
-		glAccum(GL_LOAD, 1.f);
-//		glClear(GL_ACCUM_BUFFER_BIT);
-		drawFallingBox();
-		glAccum(GL_RETURN, 1.f);
-
-		pauseGame();
-	}
-	else
-	{
-		drawScene(0);
-	}
-	*/
-		
-
-		
  	// We pushed a matrix onto the PROJECTION stack earlier, we 
 	// need to pop it.
 
@@ -469,6 +378,69 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	return true;
 }
 
+void Viewer::drawAnimatables()
+{
+	glPushMatrix();
+		glTranslatef(16, 3, 0);
+		glScalef(0.5, 0.5, 0.5);
+		Point3D frame;
+		float *scale;
+		float *rotate;
+		float *col;
+		int shapeType;
+		for (int i = 0;i<animatables.size();i++)
+		{
+			frame = animatables[i].frames[0];
+			scale = animatables[i].scales[0];
+			rotate = animatables[i].rotates[0];
+			col = animatables[i].col;
+			glPushMatrix();			
+				glColor3f(col[0], col[1], col[2]);
+				glRotatef(rotate[0], 1, 0, 0);
+				glRotatef(rotate[1], 0, 1, 0);
+				glRotatef(rotate[2], 0, 0, 1);
+				glTranslatef(frame[0], frame[1], frame[2]);
+				glScalef(scale[0], scale[1], scale[2]);
+			
+				// Draw something
+				if (animatables[i].shapeType == 1)
+				{
+					gluQuadricNormals(particleSphere, GLU_SMOOTH);	// Create Smooth Normals ( NEW )
+					gluQuadricTexture(particleSphere, GL_TRUE);
+					gluSphere(particleSphere,1.f,32,32);				
+				}
+				else
+				{
+					glBegin(GL_QUADS);
+						glVertex3f(0, 0, 0);
+						glVertex3f(1, 0, 0);
+						glVertex3f(1, 1, 0);
+						glVertex3f(0, 1, 0);
+					glEnd();
+				}
+
+			
+			
+			glPopMatrix();
+	
+			animatables[i].frames.erase(animatables[i].frames.begin());
+			animatables[i].scales.erase(animatables[i].scales.begin());
+			animatables[i].rotates.erase(animatables[i].rotates.begin());
+			if (animatables[i].loop)
+			{
+				animatables[i].frames.push_back(frame);
+				animatables[i].scales.push_back(scale);
+				animatables[i].rotates.push_back(rotate);
+			}
+				
+			if (animatables[i].frames.size() == 0)
+			{
+				animatables.erase(animatables.begin() + i);
+			}
+			
+		}
+	glPopMatrix();
+}
 void Viewer::drawBackground()
 {
 	glActiveTexture(GL_TEXTURE0);
@@ -481,13 +453,13 @@ void Viewer::drawBackground()
 		glVertex3f(-9, 0, -10);
 		
 		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-9, 16, -10);
+		glVertex3f(-9, 17, -10);
 		
 		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f(27, 16, -10);
+		glVertex3f(29, 17, -10);
 		
 		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f(27, 0, -10);
+		glVertex3f(29, 0, -10);
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
@@ -1818,6 +1790,17 @@ bool Viewer::gameTick()
 		linesClearedLabel->set_text("Deleted:\t" + linesStream.str());
 	}
 	
+
+	if (game->getClearBarPos() >= WIDTH && game->numBlocksCleared > 5)
+	{
+		animatables.clear();
+		readFile("headHappy.txt");	
+	}
+	else if (animatables.size() == 0)
+	{
+		readFile("head.txt");
+	}
+	
 	if (game->getLinesCleared() / 10 > (DEFAULT_GAME_SPEED - gameSpeed) / 50 && gameSpeed > 75)
 	{
 		// Increase the game speed
@@ -1831,10 +1814,19 @@ bool Viewer::gameTick()
 	if (returnVal < 0)
 	{
 		gameOver = true;
+		animatables.clear();
+		readFile("headSad.txt");
 		tickTimer.disconnect();
 		std::cerr << "Boo!";
+		gameOverAnimTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::forceRender), gameSpeed);
 	}
 	
+	invalidate();
+	return true;
+}
+
+bool Viewer::forceRender()
+{
 	invalidate();
 	return true;
 }
@@ -1857,6 +1849,9 @@ void Viewer::resetView()
 
 void Viewer::newGame()
 {
+	gameOverAnimTimer.disconnect();
+	animatables.clear();
+	readFile("head.txt");
 	gameOver = false;
 	game->reset();
 	
@@ -2213,4 +2208,93 @@ void Viewer::toggleMoveLightSource()
 void Viewer::toggleMotionBlur()
 {
 	motionBlur = !motionBlur;
+}
+void Viewer::readFile(char *filename)
+{
+	double xPos, yPos, zPos;
+	double xScale, yScale, zScale;
+	int timeTillNextKeyframe;
+	int shapeType, numKeyFrames;
+	int numIntermediaryFrames, loop;
+	ifstream partsFile(filename);
+	std::string name;
+	if (partsFile.is_open() )
+	{
+		while (! partsFile.eof() )
+		{
+			float *col = (float *)malloc(sizeof(float) * 3);
+			partsFile >> shapeType;
+			partsFile >> numKeyFrames;
+			partsFile >> loop;
+			partsFile >> col[0];
+			partsFile >> col[1];
+			partsFile >> col[2];
+			getline (partsFile, name);
+			for (int i = 0;i<numKeyFrames;i++)
+			{
+				float *scaleFactor = (float *)malloc(sizeof(float) * 3);
+				float *rotateFactor = (float *)malloc(sizeof(float) * 3);
+				partsFile >> xPos;
+				partsFile >> yPos;
+				partsFile >> zPos;
+				
+				partsFile >> scaleFactor[0];
+				partsFile >> scaleFactor[1];
+				partsFile >> scaleFactor[2];
+				
+				partsFile >> rotateFactor[0];
+				partsFile >> rotateFactor[1];
+				partsFile >> rotateFactor[2];
+				
+				partsFile >> numIntermediaryFrames;
+				Animatable anim;				
+				if (i > 0)
+				{
+
+					Point3D finalPos(xPos, yPos, zPos);
+					Point3D startPos = animatables.back().frames.back();
+					float *startScale = animatables.back().scales.back();
+					float *startRotate = animatables.back().rotates.back();
+					
+					int n = 30;
+					float nFrac = 1.f/numIntermediaryFrames;
+					Vector3D diff = finalPos - startPos;
+					for (int j = 0;j<=numIntermediaryFrames;j++)
+					{
+						animatables.back().frames.push_back(startPos + j * nFrac * diff );
+						
+						float *diffScale = (float *)malloc(sizeof(float) * 3);
+						float *diffRotate = (float *)malloc(sizeof(float) * 3);
+						diffScale[0] = startScale[0] + j * nFrac * (scaleFactor[0] - startScale[0]);
+						diffScale[1] = startScale[1] + j * nFrac * (scaleFactor[1] - startScale[1]);
+						diffScale[2] = startScale[2] + j * nFrac * (scaleFactor[2] - startScale[2]);
+						animatables.back().scales.push_back(diffScale);
+						
+						
+						diffRotate[0] = startRotate[0] + j * nFrac * (rotateFactor[0] - startRotate[0]);
+						diffRotate[1] = startRotate[1] + j * nFrac * (rotateFactor[1] - startRotate[1]);
+						diffRotate[2] = startRotate[2] + j * nFrac * (rotateFactor[2] - startRotate[2]);
+
+						animatables.back().rotates.push_back(diffRotate);
+					}
+				}
+				else
+				{
+					anim.frames.push_back(Point3D(xPos, yPos, zPos));
+					anim.scales.push_back(scaleFactor);
+					anim.rotates.push_back(rotateFactor);
+					anim.shapeType = shapeType;
+					if (loop)
+						anim.loop = true;
+					else
+						anim.loop = false;
+					anim.col = col;
+					animatables.push_back(anim);
+				}
+				
+				getline (partsFile, name);
+			}
+			getline (partsFile, name);
+		}
+	}
 }

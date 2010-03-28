@@ -152,6 +152,7 @@ void dropShadowPiece();
 	{
 		viewer = v;
 	}
+		int numBlocksCleared;
 private:
 	bool doesPieceFit(const Piece& p, int x, int y) const;
 
@@ -181,7 +182,7 @@ private:
 
 	// Extra stuff
 	int score_, linesCleared_;
-	int numBlocksCleared;
+
 	int numDeleted;
 	double clearBarPos;
 	Viewer *viewer;
