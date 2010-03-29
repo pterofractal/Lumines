@@ -10,6 +10,8 @@
 #include <vector>
 #include "particle.hpp"
 #include <GL/glu.h>
+//#define ENABLE_SOUND 1
+
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
 public:
@@ -192,7 +194,9 @@ private:
 	bool loadTexture;
 	bool loadBumpMapping;
 	bool transluceny;
+#ifdef ENABLE_SOUND
 	SoundManager sm;
+#endif
 	int backgroundMusic;
 	int turnSound;
 	int moveSound;

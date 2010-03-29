@@ -11,7 +11,7 @@
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
-#define ENABLE_SOUND 1
+
 using namespace std;
 
 Viewer::Viewer()
@@ -150,7 +150,7 @@ void Viewer::on_realize()
 	
 	
 	// Load music
-#ifndef ENABLE_AUDIO
+#ifdef ENABLE_AUDIO
 	introMusic = sm.LoadSound("intro.ogg");
 	backgroundMusic = sm.LoadSound("lumines.ogg");
 	moveSound = sm.LoadSound("move.ogg");
@@ -1100,7 +1100,7 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				soundOnTex = soundOffTex;
 				soundOffTex = temp;
 				disableSound = !disableSound;
-#ifndef ENABLE_AUDIO
+#ifdef ENABLE_AUDIO
 				if (!disableSound)
 					sm.PlaySound(introMusic, -1);
 				else
@@ -1152,7 +1152,7 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 	if (clickedButton && loadScreen)
 	{
 		loadScreen = false;
-#ifndef ENABLE_AUDIO
+#ifdef ENABLE_AUDIO
 		sm.StopSound(introMusic);
 		if (!disableSound)
 			sm.PlaySound(backgroundMusic, -1);
@@ -1768,7 +1768,7 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	if (gameOver)
 		return true;
 
-#ifndef ENABLE_AUDIO	
+#ifdef ENABLE_AUDIO	
 	if (loadScreen || !disableSound)
 	{
 		if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
@@ -2385,7 +2385,7 @@ void Viewer::readFile(char *filename)
 void Viewer::toggleSound()
 {
 	disableSound = !disableSound;
-#ifndef ENABLE_AUDIO
+#ifdef ENABLE_AUDIO
 	if (disableSound)
 	{
 		sm.StopSound(introMusic);
