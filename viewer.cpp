@@ -11,6 +11,7 @@
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
+#define ENABLE_SOUND 1
 using namespace std;
 
 Viewer::Viewer()
@@ -149,12 +150,13 @@ void Viewer::on_realize()
 	
 	
 	// Load music
+#ifndef ENABLE_AUDIO
 	introMusic = sm.LoadSound("intro.ogg");
 	backgroundMusic = sm.LoadSound("lumines.ogg");
 	moveSound = sm.LoadSound("move.ogg");
 	turnSound = sm.LoadSound("turn.ogg");
 	sm.PlaySound(introMusic, -1);
-	
+#endif
 	
 	// Sphere for particles
 	particleSphere = gluNewQuadric();
@@ -1098,10 +1100,12 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				soundOnTex = soundOffTex;
 				soundOffTex = temp;
 				disableSound = !disableSound;
+#ifndef ENABLE_AUDIO
 				if (!disableSound)
 					sm.PlaySound(introMusic, -1);
 				else
 					sm.StopSound(introMusic);
+#endif
 			}
 			else if (*ptr == singleSkinModeTex)
 			{
@@ -1148,9 +1152,11 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 	if (clickedButton && loadScreen)
 	{
 		loadScreen = false;
+#ifndef ENABLE_AUDIO
 		sm.StopSound(introMusic);
 		if (!disableSound)
 			sm.PlaySound(backgroundMusic, -1);
+#endif
 	}
 		
 	if (!shiftIsDown)
@@ -1761,7 +1767,8 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	// Don't process movement keys if its game over
 	if (gameOver)
 		return true;
-	
+
+#ifndef ENABLE_AUDIO	
 	if (loadScreen || !disableSound)
 	{
 		if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
@@ -1769,7 +1776,7 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 		else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
 			sm.PlaySound(turnSound);		
 	}
-
+#endif
 		
 	int r, c;
 	r = game->py_;
@@ -2378,6 +2385,7 @@ void Viewer::readFile(char *filename)
 void Viewer::toggleSound()
 {
 	disableSound = !disableSound;
+#ifndef ENABLE_AUDIO
 	if (disableSound)
 	{
 		sm.StopSound(introMusic);
@@ -2387,4 +2395,5 @@ void Viewer::toggleSound()
 		sm.PlaySound(introMusic, -1);
 	else
 		sm.PlaySound(backgroundMusic, 1);
+#endif
 }
