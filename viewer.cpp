@@ -176,7 +176,6 @@ void Viewer::on_realize()
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_COLOR, GL_DST_COLOR);
 	glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
-	glLineWidth (1.0);
 */
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	
@@ -224,18 +223,6 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glShadeModel(GL_SMOOTH);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	
-	// Create one light source
-	// Define properties of light 
-/*	float ambientLight0[] = { 0.3f, 0.3f, 0.3f, 1.0f };
-	float diffuseLight0[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-	float specularLight0[] = { 0.6f, 0.6f, 0.6f, 1.0f };
-	float position0[] = { 5.0f, 0.0f, 0.0f, 1.0f };	
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight0);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
-	glLightfv(GL_LIGHT0, GL_POSITION, position0);
-	*/
-	
 	// Scale and rotate the scene
 	
 	if (scaleFactor != 1)
@@ -280,7 +267,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	{
 		drawBackground();
 		drawFloor();
-		drawStartScreen(false, playButtonTex);
+		drawStartScreen(false);
 		
 		// We pushed a matrix onto the PROJECTION stack earlier, we 
 		// need to pop it.
@@ -330,7 +317,6 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		if (levelUpAnimation)
 		{	
 			levelUpAnimation = false;
-			int numFireworks = 10;
 			addFireworks(8 + rand()%4 - 2, 5 + rand()%4 - 2);
 			addFireworks(3 + rand()%4 - 2, 3 + rand()%4 - 2);
 			addFireworks(3 + rand()%4 - 2, 8 + rand()%4 - 2);
@@ -379,9 +365,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	// just drew. This should only be done if double buffering is enabled.
 	if (doubleBuffer)
 		gldrawable->swap_buffers();
-/*	else
-		glFlush();	*/
-		
+
 	gldrawable->gl_end();
 
 	return true;
@@ -396,8 +380,7 @@ void Viewer::drawAnimatables()
 		float *scale;
 		float *rotate;
 		float *col;
-		int shapeType;
-		for (int i = 0;i<animatables.size();i++)
+		for (unsigned int i = 0;i<animatables.size();i++)
 		{
 			frame = animatables[i].frames[0];
 			scale = animatables[i].scales[0];
@@ -447,7 +430,6 @@ void Viewer::drawAnimatables()
 				//animatables.erase(animatables.begin() + i);
 				animatables.clear();
 				readFile("head.txt");
-				std::cout<<"deleting " << i << "\n";
 			}
 			
 		}
@@ -476,6 +458,7 @@ void Viewer::drawBackground()
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
 }
+/*
 void Viewer::drawMoveBlur(int side)
 {
 	int r = game->py_;
@@ -498,6 +481,7 @@ void Viewer::drawMoveBlur(int side)
 	}
 	glDisable(GL_BLEND);
 }
+*/
 void Viewer::drawReflections()
 {
 	/* Don't update color or depth. */
@@ -505,7 +489,6 @@ void Viewer::drawReflections()
 
 	  /* Draw reflected ninja, but only where floor is. */
 	glPushMatrix();
-//		glTranslatef(0, 0.1f, -2);
 		glRotatef(90, 1.0, 0, 0);
 		glTranslatef(0, 1, -1.01);
 		glEnable(GL_BLEND);
@@ -515,25 +498,14 @@ void Viewer::drawReflections()
 				drawParticles(false);
 		glDisable(GL_BLEND);
 	glPopMatrix();
-
-
-
-/*	glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	 	glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color 
-	 	drawFloor();
-	glDisable(GL_BLEND);*/
 }
 void Viewer::drawGrid()
 {
 	glColor3d(1, 0, 0);
-	float thickness = 0.025f;
 	for (int i = 0;i<=WIDTH;i++)
 	{
 		glBegin(GL_LINES);
 		glVertex3f(i, 0, 1);
-//		glVertex3f(i + thickness, 0, 1);
-//		glVertex3f(i + thickness, HEIGHT, 1);
 		glVertex3f(i, HEIGHT, 1);
 		glEnd();
 	}
@@ -543,8 +515,6 @@ void Viewer::drawGrid()
 		glBegin(GL_LINES);
 		glVertex3f(0, i, 1);
 		glVertex3f(WIDTH, i, 1);
-	//	glVertex3f(WIDTH, i + thickness, 1);
-	//	glVertex3f(0, i + thickness, 1);
 		glEnd();
 	}
 	
@@ -775,6 +745,8 @@ void Viewer::drawRoom()							// Draw The Room (Box)
 		glVertex3f( 20.0f, 20.0f, 20.0f);			// Top Front
 	glEnd();							// Done Drawing Quads
 }
+
+/*
 void Viewer::drawShadowVolumes()
 {
 	for (int i = HEIGHT+3;i>=0;i--) // row
@@ -842,7 +814,7 @@ void Viewer::drawShadowCube(float y, float x, GLenum mode)
 		silhouette.push_back(std::pair<Point3D, Point3D>(d, a));		
 	}
 	
-/*	if (Vector3D(0, 1, 0).dot(lightVec) > 0)
+	if (Vector3D(0, 1, 0).dot(lightVec) > 0)
 	{
 		silhouette.push_back(std::pair<Point3D, Point3D>(c, d) );
 		silhouette.push_back(std::pair<Point3D, Point3D>(c, g) );
@@ -859,7 +831,7 @@ void Viewer::drawShadowCube(float y, float x, GLenum mode)
 		silhouette.push_back(std::pair<Point3D, Point3D>(b, c) );
 		silhouette.push_back(std::pair<Point3D, Point3D>(g, f) );		
 	}
-	*/
+	
 	if (Vector3D(-1, 0, 0).dot(lightVec) > 0)
 	{
 		silhouette.push_back(std::pair<Point3D, Point3D>(a, e) );
@@ -908,6 +880,7 @@ void Viewer::drawShadowCube(float y, float x, GLenum mode)
 	}
 	
 }
+*/
 
 void Viewer::drawBar()
 {
@@ -998,7 +971,6 @@ void Viewer::drawFloor()
 }
 void Viewer::drawScene(bool draw3D)
 {	
-	float frac = 1.f/16;
 	for (int i = HEIGHT+3;i>=0;i--) // row
 	{
 		for (int j = WIDTH - 1; j>=0;j--) // column
@@ -1075,7 +1047,7 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 			glTranslated(-7.5, -10.0, 7.0);
 			glInitNames();
 			glPushName(0);
-				drawStartScreen(true, playButtonTex);
+				drawStartScreen(true);
 			glPopName();
 			glMatrixMode(GL_PROJECTION);
 		glPopMatrix();
@@ -1087,16 +1059,13 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 
 		// if there are hits process them
 
-		std::cerr << "Hits " << hits << std::endl;
-
 		if (hits > 0)
 		{
 			GLuint names, *ptr, minZ,*ptrNames, numberOfNames;
 
-			printf ("hits = %d\n", hits);
 			ptr = (GLuint *) buff;
 			minZ = 0xffffffff;
-			for (unsigned int i = 0; i < hits; i++) 
+			for (int i = 0; i < hits; i++) 
 			{	
 				names = *ptr;
 				ptr++;
@@ -1110,14 +1079,13 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				ptr += names+2;
 			}
 			
-			printf ("The closest hit names are ");
 			ptr = ptrNames;
 			for (unsigned int j = 0; j < numberOfNames; j++,ptr++) 
 			{
-				printf ("%d ", *ptr);
+
 			}
 			ptr--;
-			printf ("Tex ids are %d\t%d\t%d", playButtonTex, soundOnTex,singleSkinModeTex);
+
 			if (*ptr == playButtonTex)
 			{
 				playButtonTex = playButtonClickedTex;				
@@ -1144,7 +1112,7 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				clickedButton = true;
 				singleSkinMode = true;
 			}
-			drawStartScreen(false, playButtonClickedTex);
+			drawStartScreen(false);
 			invalidate();
 		}
 	}
@@ -1326,7 +1294,7 @@ void Viewer::drawBumpCube(float y, float x, int colourId, bool draw3D)
 
 	// Now We Draw Our Object (Remember That We First Have To Calculate The
 	// (UnNormalized) Vector From Each Vertex To Our Light).
-//	std::cout << lightPos[0] << "\t" << lightPos[1] << "\t" << lightPos[2] <<"\n";
+
 	double innerXMin = 0;
 	double innerYMin = 0;
 	double innerXMax = 1;
@@ -1890,7 +1858,6 @@ bool Viewer::gameTick()
 		animatables.clear();
 		readFile("headSad.txt");
 		tickTimer.disconnect();
-		std::cerr << "Boo!";
 		gameOverAnimTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Viewer::forceRender), gameSpeed);
 	}
 	
@@ -1967,7 +1934,7 @@ bool Viewer::moveClearBar()
 	return true;
 }
 
-void Viewer::drawStartScreen(bool pick, GLuint texId)
+void Viewer::drawStartScreen(bool pick)
 {
 	if (pick)
 		glPushName(playButtonTex);
@@ -2043,8 +2010,8 @@ int Viewer::ImageLoad(const char *filename, Image *image) {
     // make sure the file is there.
     if ((file = fopen(filename, "rb"))==NULL)
     {
-	printf("File Not Found : %s\n",filename);
-	return 0;
+		printf("File Not Found : %s\n",filename);
+		return 0;
     }
     
     // seek through the bmp header, up to the width/height:
@@ -2052,39 +2019,39 @@ int Viewer::ImageLoad(const char *filename, Image *image) {
 
     // read the width
     if ((i = fread(&image->sizeX, 4, 1, file)) != 1) {
-	printf("Error reading width from %s.\n", filename);
-	return 0;
-    }
+		printf("Error reading width from %s.\n", filename);
+		return 0;
+    }		
     printf("Width of %s: %lu\n", filename, image->sizeX);
     
     // read the height 
     if ((i = fread(&image->sizeY, 4, 1, file)) != 1) {
-	printf("Error reading height from %s.\n", filename);
-	return 0;
+		printf("Error reading height from %s.\n", filename);
+		return 0;
     }
-    printf("Height of %s: %lu\n", filename, image->sizeY);
+    	printf("Height of %s: %lu\n", filename, image->sizeY);
     
     // calculate the size (assuming 24 bits or 3 bytes per pixel).
     size = image->sizeX * image->sizeY * 3;
 
     // read the planes
     if ((fread(&planes, 2, 1, file)) != 1) {
-	printf("Error reading planes from %s.\n", filename);
-	return 0;
+		printf("Error reading planes from %s.\n", filename);
+		return 0;
     }
     if (planes != 1) {
-	printf("Planes from %s is not 1: %u\n", filename, planes);
-	return 0;
+		printf("Planes from %s is not 1: %u\n", filename, planes);
+		return 0;
     }
 
     // read the bpp
     if ((i = fread(&bpp, 2, 1, file)) != 1) {
-	printf("Error reading bpp from %s.\n", filename);
-	return 0;
+		printf("Error reading bpp from %s.\n", filename);
+		return 0;
     }
     if (bpp != 24) {
-	printf("Bpp from %s is not 24: %u\n", filename, bpp);
-	return 0;
+		printf("Bpp from %s is not 24: %u\n", filename, bpp);
+		return 0;
     }
 	
     // seek past the rest of the bitmap header.
@@ -2093,13 +2060,13 @@ int Viewer::ImageLoad(const char *filename, Image *image) {
     // read the data. 
     image->data = (char *) malloc(size);
     if (image->data == NULL) {
-	printf("Error allocating memory for color-corrected image data");
-	return 0;	
+		printf("Error allocating memory for color-corrected image data");
+		return 0;	
     }
 
     if ((i = fread(image->data, size, 1, file)) != 1) {
-	printf("Error reading image data from %s.\n", filename);
-	return 0;
+		printf("Error reading image data from %s.\n", filename);
+		return 0;
     }
 
     for (i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
@@ -2120,8 +2087,8 @@ int  Viewer::LoadGLTextures(const char *filename, GLuint &texid) {
     // allocate space for texture
     image1 = (Image *) malloc(sizeof(Image));
     if (image1 == NULL) {
-	printf("Error allocating space for image");
-	exit(0);
+		printf("Error allocating space for image");
+		exit(0);
     }
 
     if (!ImageLoad(filename, image1)) {
@@ -2324,8 +2291,6 @@ void Viewer::toggleMotionBlur()
 void Viewer::readFile(char *filename)
 {
 	double xPos, yPos, zPos;
-	double xScale, yScale, zScale;
-	int timeTillNextKeyframe;
 	int shapeType, numKeyFrames;
 	int numIntermediaryFrames, loop;
 	ifstream partsFile(filename);
@@ -2368,7 +2333,6 @@ void Viewer::readFile(char *filename)
 					float *startScale = animatables.back().scales.back();
 					float *startRotate = animatables.back().rotates.back();
 					
-					int n = 30;
 					float nFrac = 1.f/numIntermediaryFrames;
 					Vector3D diff = finalPos - startPos;
 					for (int j = 0;j<=numIntermediaryFrames;j++)

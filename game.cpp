@@ -20,8 +20,9 @@
 #define OBLOCKCOL 2
 #define XCLEARBLOCKCOL 3
 #define OCLEARBLOCKCOL 4
-#define COUNTER_SPACE 17
+#define COUNTER_SPACE 16
 int lastClearedRow = -1;
+int atTheTop = 0;
 static const Piece PIECES[] = {
   Piece(
         "...."
@@ -354,6 +355,7 @@ int Game::tick()
 	int level =  linesCleared_/100;
 	if (level > 12)
 		level = 12;
+		
 	removePiece(piece_, px_, py_);
 	markBlocksForClearing();
 	returnVal = collapse();
@@ -364,7 +366,14 @@ int Game::tick()
 		placePiece(piece_, px_, py_);
 		return returnVal;
 	}		
-	
+
+	if (py_ == board_height_ + 2 && atTheTop < 16)
+	{
+		atTheTop++;
+		placePiece(piece_, px_, py_);
+		return returnVal;
+	}
+	atTheTop = 0;
 	counter = 0;	
 	int ny = py_ - 1;
 		

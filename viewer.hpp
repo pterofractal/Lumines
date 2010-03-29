@@ -118,7 +118,7 @@ private:
 	void drawShadowVolumes();
 	void drawShadowCube(float y, float x, GLenum mode);
 	void drawRoom();
-	void drawStartScreen(bool picking, GLuint texId);
+	void drawStartScreen(bool picking);
 	void drawParticles(bool step = true);
 	void drawGrid();
 	void drawReflections();
