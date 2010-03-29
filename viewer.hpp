@@ -5,12 +5,15 @@
 #include <gtkmm.h>
 #include <gtkglmm.h>
 #include "game.hpp"
-#include "SoundManager.hpp"
 #include <map>
 #include <vector>
 #include "particle.hpp"
 #include <GL/glu.h>
 //#define ENABLE_SOUND 1
+
+#ifdef ENABLE_SOUND
+	#include "SoundManager.hpp"
+#endif
 
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
