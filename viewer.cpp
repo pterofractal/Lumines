@@ -11,7 +11,6 @@
 #define DEFAULT_GAME_SPEED 50
 #define WIDTH	16
 #define HEIGHT 	10
-
 using namespace std;
 
 Viewer::Viewer()
@@ -75,7 +74,6 @@ Viewer::Viewer()
 	glconfig = Gdk::GL::Config::create(	Gdk::GL::MODE_RGBA |
 										Gdk::GL::MODE_DEPTH |
 										Gdk::GL::MODE_DOUBLE |
-										Gdk::GL::MODE_ACCUM |
 										Gdk::GL::MODE_STENCIL);
 	if (glconfig == 0) {
 	  // If we can't get this configuration, die
@@ -150,17 +148,25 @@ void Viewer::on_realize()
 	
 	
 	// Load music
-#ifdef ENABLE_AUDIO
 	introMusic = sm.LoadSound("intro.ogg");
 	backgroundMusic = sm.LoadSound("lumines.ogg");
 	moveSound = sm.LoadSound("move.ogg");
 	turnSound = sm.LoadSound("turn.ogg");
 	sm.PlaySound(introMusic, -1);
-#endif
+	
 	
 	// Sphere for particles
 	particleSphere = gluNewQuadric();
+	sphereDisplayList = glGenLists(1);
+	glNewList(sphereDisplayList, GL_COMPILE);
+		GLUquadricObj *sphere = gluNewQuadric();
+		gluQuadricNormals(sphere, GL_SMOOTH);	// Generate Smooth Normals For The Quad
+		gluQuadricTexture(sphere, GL_TRUE);		// Enable Texture Coords For The Quad
+		gluSphere(sphere, 1.0f, 32, 32);
+		delete(sphere);
+	glEndList();
 	
+	// Load default aniamtion
 	readFile("head.txt");
 		
 	
@@ -399,9 +405,7 @@ void Viewer::drawAnimatables()
 				// Draw something
 				if (animatables[i].shapeType == 1)
 				{
-					gluQuadricNormals(particleSphere, GLU_SMOOTH);	// Create Smooth Normals ( NEW )
-					gluQuadricTexture(particleSphere, GL_TRUE);
-					gluSphere(particleSphere,1.f,32,32);				
+					glCallList(sphereDisplayList);
 				}
 				else
 				{
@@ -612,15 +616,12 @@ void Viewer::drawParticles(bool step)
 		else if (particles[i]->getShape() == 1 && step)
 		{
 			colour = particles[i]->getColour();
-			GLUquadricObj *sphere = gluNewQuadric();
 			glColor4f(colour[0], colour[1], colour[2], alpha);
-			gluQuadricNormals(sphere, GLU_SMOOTH);	// Create Smooth Normals ( NEW )
-			gluQuadricTexture(sphere, GL_TRUE);
 			glPushMatrix();
 				glTranslatef(pos[0], pos[1], pos[2]);
-				gluSphere(sphere, rad, 32, 32);
+				glScalef(rad, rad, rad);
+				glCallList(sphereDisplayList);
 			glPopMatrix();	
-			delete(sphere);			
 
 			if (colour[1] > 1)
 			{
@@ -1100,12 +1101,10 @@ bool Viewer::on_button_press_event(GdkEventButton* event)
 				soundOnTex = soundOffTex;
 				soundOffTex = temp;
 				disableSound = !disableSound;
-#ifdef ENABLE_AUDIO
 				if (!disableSound)
 					sm.PlaySound(introMusic, -1);
 				else
 					sm.StopSound(introMusic);
-#endif
 			}
 			else if (*ptr == singleSkinModeTex)
 			{
@@ -1152,11 +1151,9 @@ bool Viewer::on_button_release_event(GdkEventButton* event)
 	if (clickedButton && loadScreen)
 	{
 		loadScreen = false;
-#ifdef ENABLE_AUDIO
 		sm.StopSound(introMusic);
 		if (!disableSound)
 			sm.PlaySound(backgroundMusic, -1);
-#endif
 	}
 		
 	if (!shiftIsDown)
@@ -1767,8 +1764,7 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 	// Don't process movement keys if its game over
 	if (gameOver)
 		return true;
-
-#ifdef ENABLE_AUDIO	
+	
 	if (loadScreen || !disableSound)
 	{
 		if (ev->keyval == GDK_Left || ev->keyval == GDK_Right)
@@ -1776,7 +1772,7 @@ bool Viewer::on_key_press_event( GdkEventKey *ev )
 		else if (ev->keyval == GDK_Up || ev->keyval == GDK_Down)
 			sm.PlaySound(turnSound);		
 	}
-#endif
+
 		
 	int r, c;
 	r = game->py_;
@@ -2385,7 +2381,6 @@ void Viewer::readFile(char *filename)
 void Viewer::toggleSound()
 {
 	disableSound = !disableSound;
-#ifdef ENABLE_AUDIO
 	if (disableSound)
 	{
 		sm.StopSound(introMusic);
@@ -2395,5 +2390,4 @@ void Viewer::toggleSound()
 		sm.PlaySound(introMusic, -1);
 	else
 		sm.PlaySound(backgroundMusic, 1);
-#endif
 }

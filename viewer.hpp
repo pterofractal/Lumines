@@ -5,16 +5,11 @@
 #include <gtkmm.h>
 #include <gtkglmm.h>
 #include "game.hpp"
+#include "SoundManager.hpp"
 #include <map>
 #include <vector>
 #include "particle.hpp"
 #include <GL/glu.h>
-//#define ENABLE_SOUND 1
-
-#ifdef ENABLE_SOUND
-	#include "SoundManager.hpp"
-#endif
-
 // The "main" OpenGL widget
 class Viewer : public Gtk::GL::DrawingArea {
 public:
@@ -197,9 +192,7 @@ private:
 	bool loadTexture;
 	bool loadBumpMapping;
 	bool transluceny;
-#ifdef ENABLE_SOUND
 	SoundManager sm;
-#endif
 	int backgroundMusic;
 	int turnSound;
 	int moveSound;
@@ -212,6 +205,7 @@ private:
 	bool drawingShadow;
 	GLuint cube, bumpMap, floorTexId, playButtonTex, playButtonClickedTex, backgroundTex;
 	GLuint soundOnTex, soundOffTex, singleSkinModeTex, singleSkinModeClickedTex;
+	GLuint sphereDisplayList;
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
 	std::vector< Particle *> particles;
