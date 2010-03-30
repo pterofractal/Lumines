@@ -56,6 +56,7 @@ public:
 	void toggleMoveLightSource();
 	void toggleMotionBlur();
 	void toggleSound();
+	void toggleShadows();
 	void makeRasterFont();
 	void printString(const char *s);
 	
@@ -111,7 +112,8 @@ protected:
 
 
 private:
-	void drawScene(bool draw3D = true);
+	void drawGameboard(bool draw3D = true);
+	void drawScene();
 	void drawBar();
 	void drawFallingBox();
 	void drawFloor();
@@ -205,7 +207,7 @@ private:
 	bool drawingShadow;
 	GLuint cube, bumpMap, floorTexId, playButtonTex, playButtonClickedTex, backgroundTex;
 	GLuint soundOnTex, soundOffTex, singleSkinModeTex, singleSkinModeClickedTex;
-	GLuint sphereDisplayList;
+	GLuint sphereDisplayList, texCubeDisplayList, outlineDisplayList, reflectCubeDisplayList;
 	bool clickedButton;
 	std::vector< std::pair<Point3D, Point3D> > silhouette;
 	std::vector< Particle *> particles;
@@ -216,6 +218,7 @@ private:
 	bool levelUpAnimation;
 	bool disableSound;
 	bool singleSkinMode;
+	bool drawShadow;
 	GLUquadricObj *particleSphere;	
 	
 	struct Animatable{

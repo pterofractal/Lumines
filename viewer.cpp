@@ -50,6 +50,7 @@ Viewer::Viewer()
 	levelUpAnimation = false;
 	singleSkinMode = false;
 	disableSound = false;
+	drawShadow = false;
 	// Game starts at a slow pace of 500ms
 	gameSpeed = DEFAULT_GAME_SPEED;
 	
@@ -157,7 +158,7 @@ void Viewer::on_realize()
 	
 	// Sphere for particles
 	particleSphere = gluNewQuadric();
-	sphereDisplayList = glGenLists(1);
+	sphereDisplayList = glGenLists(4);
 	glNewList(sphereDisplayList, GL_COMPILE);
 		GLUquadricObj *sphere = gluNewQuadric();
 		gluQuadricNormals(sphere, GL_SMOOTH);	// Generate Smooth Normals For The Quad
@@ -166,6 +167,177 @@ void Viewer::on_realize()
 		delete(sphere);
 	glEndList();
 	
+	// Cubes for the game board
+	texCubeDisplayList = sphereDisplayList + 1;
+	glNewList(texCubeDisplayList, GL_COMPILE);
+		glBegin(GL_QUADS);
+		 	glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 0, 1);
+
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 0, 1);
+
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(1, 1, 1);
+
+			glTexCoord2f(0.0f, 1.0f);	
+			glVertex3d(0, 1, 1);
+		glEnd();
+		// top face
+		glNormal3d(0, 1, 0);
+
+		glBegin(GL_QUADS);
+		 	glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 1, 0);
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 1, 0);
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(1, 1, 1);
+			glTexCoord2f(0.0f, 1.0f);
+			glVertex3d(0, 1, 1);
+		glEnd();
+
+		// left face
+		glNormal3d(0, 0, -1);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 0, 0);
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(0, 1, 0);
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(0, 1, 1);
+			glTexCoord2f(0.0f, 1.0f);
+			glVertex3d(0, 0, 1);
+		glEnd();
+
+		// bottom face
+		glNormal3d(0, -1, 0);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 0, 0);
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 0, 0);
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(1, 0, 1);
+			glTexCoord2f(0.0f, 1.0f);
+			glVertex3d(0, 0, 1);
+		glEnd();
+
+		// right face
+		glNormal3d(0, 0, 1);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(1, 0, 0);
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 1, 0);
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(1, 1, 1);
+			glTexCoord2f(0.0f, 1.0f);
+			glVertex3d(1, 0, 1);
+		glEnd();
+
+		// Back of front face
+		glNormal3d(-1, 0, 0);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 0, 0);
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 0, 0);
+			glTexCoord2f(1.0f, 1.0f);	
+			glVertex3d(1, 1, 0);
+			glTexCoord2f(0.0f, 1.0f);
+			glVertex3d(0, 1, 0);
+		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
+	glEndList();
+	
+	// Create display list for outline
+	outlineDisplayList = texCubeDisplayList + 1;
+	glNewList(outlineDisplayList, GL_COMPILE);
+		glLineWidth (1.2);
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(0, 0, 1);
+
+			glVertex3d(1, 0, 1);
+
+			glVertex3d(1, 1, 1);
+
+			glVertex3d(0, 1, 1);
+		glEnd();
+		// top face
+		glNormal3d(0, 1, 0);
+
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(0, 1, 0);
+			glVertex3d(1, 1, 0);
+			glVertex3d(1, 1, 1);
+			glVertex3d(0, 1, 1);
+		glEnd();
+
+		// left face
+		glNormal3d(0, 0, -1);
+
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(0, 0, 0);
+			glVertex3d(0, 1, 0);
+			glVertex3d(0, 1, 1);
+			glVertex3d(0, 0, 1);
+		glEnd();
+
+		// bottom face
+		glNormal3d(0, -1, 0);
+
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(0, 0, 0);
+			glVertex3d(1, 0, 0);
+			glVertex3d(1, 0, 1);
+			glVertex3d(0, 0, 1);
+		glEnd();
+
+		// right face
+		glNormal3d(0, 0, 1);
+
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(1, 0, 0);
+			glVertex3d(1, 1, 0);
+			glVertex3d(1, 1, 1);
+			glVertex3d(1, 0, 1);
+		glEnd();
+
+		// Back of front face
+		glNormal3d(-1, 0, 0);
+
+		glBegin(GL_LINE_LOOP);
+			glVertex3d(0, 0, 0);
+			glVertex3d(1, 0, 0);
+			glVertex3d(1, 1, 0);
+			glVertex3d(0, 1, 0);
+		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
+	glEndList();
+	
+	// Reflection display list
+	reflectCubeDisplayList = outlineDisplayList + 1;
+	glNewList(reflectCubeDisplayList, GL_COMPILE);
+		glBegin(GL_QUADS);
+		 	glTexCoord2f(0.0f, 0.0f);
+			glVertex3d(0, 0, 1);
+
+			glTexCoord2f(1.0f, 0.0f);
+			glVertex3d(1, 0, 1);
+
+			glTexCoord2f(1.0f, 1.0f);
+			glVertex3d(1, 1, 1);
+
+			glTexCoord2f(0.0f, 1.0f);	
+			glVertex3d(0, 1, 1);
+		glEnd();
+	glEndList();
+		
 	// Load default aniamtion
 	readFile("head.txt");
 		
@@ -307,31 +479,11 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight0);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight0);
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-	
 
+	
 	if (!motionBlur)
 	{	
-		drawBackground();
-		drawFloor();
-		drawReflections();	
 		drawScene();
-		drawGrid();
-		drawParticles();	
-		drawBar();
-		glDisable(GL_LIGHTING);
-		drawAnimatables();
-		glEnable(GL_LIGHTING);
-		
-		if (levelUpAnimation)
-		{	
-			levelUpAnimation = false;
-			addFireworks(8 + rand()%4 - 2, 5 + rand()%4 - 2);
-			addFireworks(3 + rand()%4 - 2, 3 + rand()%4 - 2);
-			addFireworks(3 + rand()%4 - 2, 8 + rand()%4 - 2);
-			addFireworks(8 + rand()%4 - 2, 2 + rand()%4 - 2);
-			addFireworks(14 + rand()%4 - 2, 6 + rand()%4 - 2);
-			addFireworks(16 + rand()%4 - 2, 8 + rand()%4 - 2);
-		}
 	}
 	else
 	{
@@ -343,13 +495,7 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 		}
 		else
 		{
-			drawBackground();
-			drawFloor();
-			drawReflections();	
 			drawScene();
-			drawGrid();
-			drawParticles();	
-			drawBar();		
 		}
 	}
 
@@ -377,6 +523,55 @@ bool Viewer::on_expose_event(GdkEventExpose* event)
 	gldrawable->gl_end();
 
 	return true;
+}
+
+void Viewer::drawScene()
+{
+	if (drawShadow)
+	{
+		glDisable(GL_DEPTH_TEST);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+		glEnable(GL_STENCIL_TEST);
+		glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+		glStencilFunc(GL_ALWAYS, 1, 0xffffffff);
+
+		drawFloor();
+
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+
+		glStencilFunc(GL_EQUAL, 1, 0xffffffff);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+		drawShadowVolumes();
+		silhouette.clear();
+		drawFloor();	
+
+		glDisable(GL_STENCIL_TEST);	
+	}
+	
+	drawBackground();
+	drawFloor();
+	drawReflections();	
+	drawGameboard();
+	drawGrid();
+	drawParticles();	
+	drawBar();
+	glDisable(GL_LIGHTING);
+	drawAnimatables();
+	glEnable(GL_LIGHTING);
+	
+	if (levelUpAnimation)
+	{	
+		levelUpAnimation = false;
+		addFireworks(8 + rand()%4 - 2, 5 + rand()%4 - 2);
+		addFireworks(3 + rand()%4 - 2, 3 + rand()%4 - 2);
+		addFireworks(3 + rand()%4 - 2, 8 + rand()%4 - 2);
+		addFireworks(8 + rand()%4 - 2, 2 + rand()%4 - 2);
+		addFireworks(14 + rand()%4 - 2, 6 + rand()%4 - 2);
+		addFireworks(16 + rand()%4 - 2, 8 + rand()%4 - 2);
+	}
 }
 
 void Viewer::drawAnimatables()
@@ -500,7 +695,7 @@ void Viewer::drawReflections()
 		glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				glColor4f(0.7, 0.0, 0.0, 0.40);  /* 40% dark red floor color */
-				drawScene(false);
+				drawGameboard(false);
 				drawParticles(false);
 		glDisable(GL_BLEND);
 	glPopMatrix();
@@ -599,7 +794,9 @@ void Viewer::drawParticles(bool step)
 				glTranslatef(pos[0], pos[1], pos[2]);
 				glEnable(GL_TEXTURE_2D);
 				glBindTexture(GL_TEXTURE_2D, texture[particles[i]->getColourIndex() - 1]);
-				glBegin(GL_QUADS);
+				glScalef(rad, rad, 1);
+				glCallList(reflectCubeDisplayList);
+/*				glBegin(GL_QUADS);
 					glTexCoord2f(0.0f, 0.0f);
 					glVertex3d(0, 0, 1);
 					glTexCoord2f(1.0f, 0.0f);
@@ -608,7 +805,7 @@ void Viewer::drawParticles(bool step)
 					glVertex3d(rad, rad, 1);
 					glTexCoord2f(0.0f, 1.0f);
 					glVertex3d(0, rad, 1);
-				glEnd();
+				glEnd();*/
 			glPopMatrix();
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glDisable(GL_TEXTURE_2D);	
@@ -749,7 +946,7 @@ void Viewer::drawRoom()							// Draw The Room (Box)
 	glEnd();							// Done Drawing Quads
 }
 
-/*
+
 void Viewer::drawShadowVolumes()
 {
 	for (int i = HEIGHT+3;i>=0;i--) // row
@@ -883,7 +1080,7 @@ void Viewer::drawShadowCube(float y, float x, GLenum mode)
 	}
 	
 }
-*/
+
 
 void Viewer::drawBar()
 {
@@ -920,13 +1117,7 @@ void Viewer::drawFallingBox()
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			drawBackground();
-			drawFloor();
-			drawReflections();	
 			drawScene();
-			drawGrid();
-			drawParticles();	
-			drawBar();
 		
 		
 		glPushMatrix();
@@ -972,7 +1163,7 @@ void Viewer::drawFloor()
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glDisable(GL_TEXTURE_2D);	
 }
-void Viewer::drawScene(bool draw3D)
+void Viewer::drawGameboard(bool draw3D)
 {	
 	for (int i = HEIGHT+3;i>=0;i--) // row
 	{
@@ -981,21 +1172,45 @@ void Viewer::drawScene(bool draw3D)
 			if(loadBumpMapping && game->get(i, j) != -1)
 				drawBumpCube (i, j, game->get(i, j), draw3D );
 			else if(game->get(i, j) != -1)
-				drawCube (i, j, game->get(i, j), GL_QUADS, draw3D );
+			{
+				glPushMatrix();
+					glTranslatef(j, i, 0);
+					drawCube (i, j, game->get(i, j), GL_QUADS, draw3D );
+				glPopMatrix();
+			}
+				
 				
 			// Draw outline for cube
 			if (game->get(i, j) != -1)
-				drawCube(i, j, 7, GL_LINE_LOOP, draw3D);
+			{
+				glPushMatrix();
+					glTranslatef(j, i, 0);
+					drawCube(i, j, 7, GL_LINE_LOOP, draw3D);
+				glPopMatrix();
+			}
+
 		}
 	}	
 	
 	// Draw next piece
 	int nextPieceCol[4];
 	game->getNextPieceColour(nextPieceCol);
-	drawCube(2, 19, nextPieceCol[0], GL_QUADS, draw3D);
-	drawCube(2, 20, nextPieceCol[1], GL_QUADS, draw3D);
-	drawCube(1, 19, nextPieceCol[2], GL_QUADS, draw3D);
-	drawCube(1, 20, nextPieceCol[3], GL_QUADS, draw3D);
+	glPushMatrix();
+		glTranslatef(19, 2, 0);
+		drawCube(2, 19, nextPieceCol[0], GL_QUADS, draw3D);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(20, 2, 0);
+		drawCube(2, 20, nextPieceCol[1], GL_QUADS, draw3D);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(19, 1, 0);
+		drawCube(1, 19, nextPieceCol[2], GL_QUADS, draw3D);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(20, 1, 0);
+		drawCube(1, 20, nextPieceCol[3], GL_QUADS, draw3D);
+	glPopMatrix();
 }
 bool Viewer::on_configure_event(GdkEventConfigure* event)
 {
@@ -1618,20 +1833,19 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool draw3D)
 	}
 	
 
-		
-	glBegin(mode);
-	 	glTexCoord2f(0.0f, 0.0f);
-		glVertex3d(innerXMin + x, innerYMin + y, zMax);
-		
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3d(innerXMax + x, innerYMin + y, zMax);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3d(innerXMax + x, innerYMax + y, zMax);
-
-		glTexCoord2f(0.0f, 1.0f);	
-		glVertex3d(innerXMin + x, innerYMax + y, zMax);
-	glEnd();
+	if (mode == GL_LINE_LOOP && draw3D)
+	{
+		glCallList(outlineDisplayList);
+	}
+	else if (draw3D)
+	{
+		glCallList(texCubeDisplayList);
+	}
+	else if (!draw3D)
+	{
+		glCallList(reflectCubeDisplayList);
+	}
+/*
 
 	if (draw3D)
 	{
@@ -1706,6 +1920,7 @@ void Viewer::drawCube(float y, float x, int colourId, GLenum mode, bool draw3D)
 		glEnd();
 	
 	}
+*/
 	glBindTexture(GL_TEXTURE_2D, 0);
 	if (transluceny)
 		glDisable(GL_BLEND);
@@ -1751,6 +1966,11 @@ void Viewer::toggleBuffer()
 	// Toggle the value of doubleBuffer
 	doubleBuffer = !doubleBuffer;
 	invalidate();
+}
+
+void Viewer::toggleShadows()
+{
+	drawShadow = !drawShadow;
 }
 
 void Viewer::setDrawMode(DrawMode mode)
@@ -1839,7 +2059,7 @@ bool Viewer::gameTick()
 	}
 	
 
-	if (game->getClearBarPos() >= WIDTH && game->numBlocksCleared > 15)
+	if (game->getClearBarPos() >= WIDTH && game->numBlocksCleared > 5)
 	{
 		animatables.clear();
 		readFile("headHappy.txt");	

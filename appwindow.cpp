@@ -30,6 +30,7 @@ AppWindow::AppWindow()
 	m_menu_drawMode.items().push_back(MenuElem("_Translucency", Gtk::AccelKey("u"), sigc::mem_fun(m_viewer, &Viewer::toggleTranslucency ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("_Move Light Source", Gtk::AccelKey("l"), sigc::mem_fun(m_viewer, &Viewer::toggleMoveLightSource ) ) );
 	m_menu_drawMode.items().push_back(MenuElem("Motion _Blur", Gtk::AccelKey("m"), sigc::mem_fun(m_viewer, &Viewer::toggleMotionBlur ) ) );
+	m_menu_drawMode.items().push_back(MenuElem("_Draw Shadow", Gtk::AccelKey("d"), sigc::mem_fun(m_viewer, &Viewer::toggleShadows ) ) );
 
 	m_menu_drawMode.items().push_back(CheckMenuElem("_Enable Sound", Gtk::AccelKey("s"), sound_slot ));
 	
